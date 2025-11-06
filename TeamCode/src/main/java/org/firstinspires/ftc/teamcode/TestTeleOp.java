@@ -1,31 +1,22 @@
 package org.firstinspires.ftc.teamcode;
 
-import static org.firstinspires.ftc.teamcode.rpm.initializeFlywheels;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-import com.qualcomm.hardware.limelightvision.Limelight3A;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.Servo;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
-import org.firstinspires.ftc.vision.VisionPortal;
-import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
-import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
-import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.LLStatus;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
+
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
 import java.util.List;
-import java.lang.Math;
 @Config
 @TeleOp(name="TestTeleOp")
 public class TestTeleOp extends LinearOpMode {
@@ -36,12 +27,11 @@ public class TestTeleOp extends LinearOpMode {
     private DcMotor leftFlyWheel = null;
     private DcMotor rightFlyWheel = null;
     private DcMotor intake = null;
+    private DcMotor lift = null;
+
+    //servos
     private Servo pitchLeft = null;
     private Servo pitchRight = null;
-    private CRServo beltFront = null;//CRServo means continuous rotation for all you new gens
-    private CRServo beltBack = null;
-    private Servo timingServo = null;
-    private Servo doorServo = null;
     //Pid
     private int targetRPM = 0;
     private pid leftPid = null;
@@ -91,10 +81,7 @@ public class TestTeleOp extends LinearOpMode {
         //Servos
         pitchLeft = hardwareMap.get(Servo.class, "pitchLeft");
         pitchRight = hardwareMap.get(Servo.class, "pitchRight");
-        timingServo = hardwareMap.get(Servo.class, "pitchRight");
-        doorServo = hardwareMap.get(Servo.class, "pitchRight");
-        beltFront = hardwareMap.get(CRServo.class, "beltFront");
-        beltBack = hardwareMap.get(CRServo.class, "beltBack");
+
 
         //Fly-wheel
         leftFlyWheel = hardwareMap.get(DcMotor.class, "leftFlyWheel");
@@ -106,6 +93,8 @@ public class TestTeleOp extends LinearOpMode {
         //Intakes
         intake = hardwareMap.get(DcMotor.class, "intake");
         intake.setDirection(DcMotor.Direction.FORWARD);
+        lift = intake = hardwareMap.get(DcMotor.class, "lift");
+        lift.setDirection(DcMotor.Direction.FORWARD);
 
 
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
@@ -126,7 +115,7 @@ public class TestTeleOp extends LinearOpMode {
 
         while (opModeIsActive()) {
             telemetry.update();
-            initializeFlywheels();
+            rpm.initializeFlywheels();
             double currentTime = getRuntime();
 
             // --------------------------- WHEELS --------------------------- //
@@ -150,7 +139,7 @@ public class TestTeleOp extends LinearOpMode {
             }
 
             // Reduced Power Mode
-            if (gamepad1.left_trigger > 0 || gamepad1.right_trigger > 0) {
+            if (gamepad1.a) {
                 leftFrontPower /= 2;
                 rightFrontPower /= 2;
                 leftBackPower /= 2;
@@ -165,31 +154,34 @@ public class TestTeleOp extends LinearOpMode {
 
             //intake for player1 does both belt and intake motor
             //forward
-            if(gamepad2.right_trigger>0){
-                intake.setPower(1);
-                beltFront.setPower(gamepad2.right_trigger);
-                beltBack.setPower(gamepad2.right_trigger);
+            if(gamepad1.right_trigger>0){
+                double val;
+                if(gamepad1.right_trigger>0.7){
+                    val = 0.7;
+                }
+                else{
+                    val = gamepad1.right_trigger;
+                }
+                intake.setPower(val);
+                lift.setPower(val);
+
             }
             //reverse
-            if(gamepad2.left_trigger>0){
-                intake.setPower(-1);
-                beltFront.setPower(-gamepad2.right_trigger);
-                beltBack.setPower(-gamepad2.right_trigger);
-            }
-            //Control for the conveyor belt for player 2
-            if(gamepad2.right_stick_y>0 || gamepad2.right_stick_y<0){
-                beltFront.setPower(-gamepad2.right_stick_y);
-                beltBack.setPower(-gamepad2.right_stick_y);
+            if(gamepad1.left_trigger>0){
+                double val;
+                if(gamepad1.right_trigger>0.7){
+                    val = 0.7;
+                }
+                else{
+                    val = gamepad1.right_trigger;
+                }
+                intake.setPower(val);
+                lift.setPower(val);
             }
 
-            //control for only intake for player 2
-            if(gamepad2.left_stick_y>0 || gamepad2.left_stick_y<0){
-                beltFront.setPower(-gamepad2.left_stick_y);
-                beltBack.setPower(-gamepad2.left_stick_y);
-            }
             //Lime Light
 
-            if(gamepad2.a){
+            if(gamepad2.a & gamepad2.b){
                 LLResult result = limelight.getLatestResult();
                 LLStatus status = limelight.getStatus();
                 telemetry.addData("Name", "%s",
@@ -245,8 +237,6 @@ public class TestTeleOp extends LinearOpMode {
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f",
                     leftBackDrive.getPower(), rightBackDrive.getPower());
 
-            telemetry.addData("Front/Back Belt", "%4.2f, %4.2f",
-                    beltFront.getPower(), beltBack.getPower());
             telemetry.addData("Intake", "%4.2f", intake.getPower());
 
             telemetry.addData("Flywheel RPM Left/Right", "%4.2f,%4.2f",rpm.getLeftRPM(),rpm.getRightRPM());
