@@ -19,12 +19,7 @@ public class TestTeleOp extends LinearOpMode {
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
     private DcMotor Intake = null;
-    private DcMotor FlyWheel = null;
-    private DcMotor Timing = null;
-    //servos
-    private Servo Indexing = null;
-    private Servo PitchL = null;
-    private Servo Kicker = null;
+
 
     //Constants
     //indexer
@@ -50,24 +45,17 @@ public class TestTeleOp extends LinearOpMode {
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
+        rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
         setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         //intake
         Intake = hardwareMap.get(DcMotor.class, "Intake");
-        Timing = hardwareMap.get(DcMotor.class, "Timing");
+
         Intake.setDirection(DcMotorSimple.Direction.FORWARD);
-        Timing.setDirection(DcMotorSimple.Direction.FORWARD);
-        Indexing = hardwareMap.get(Servo.class,"Indexing");
-        Kicker = hardwareMap.get(Servo.class,"Kicker");
-        Indexing.setDirection(Servo.Direction.FORWARD);
-        Kicker.setDirection(Servo.Direction.FORWARD);
+
 
         //shooting
-        FlyWheel = hardwareMap.get(DcMotor.class, "FlyWheel");
-        FlyWheel.setDirection(DcMotorSimple.Direction.FORWARD);
-        PitchL = hardwareMap.get(Servo.class,"pitchL");
-        PitchL.setDirection(Servo.Direction.FORWARD);
+
 
         //telemetry dec
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
@@ -75,8 +63,7 @@ public class TestTeleOp extends LinearOpMode {
         telemetry.update();
 
         waitForStart();
-        Indexing.setPosition(Left);
-        Kicker.setPosition(Retracted);
+
         while (opModeIsActive()) { // Loop
 
             // --------------------------- WHEELS --------------------------- //
@@ -114,12 +101,13 @@ public class TestTeleOp extends LinearOpMode {
             rightBackDrive.setPower(rightBackPower);
 
             //Intake
-            if(gamepad1.right_trigger > 0){
-                Intake.setPower(gamepad1.right_trigger);
+            if(gamepad1.right_trigger > 0.01){
+                Intake.setPower(1);
             }
-            if(gamepad2.left_trigger>0){
-                Intake.setPower(-gamepad1.left_trigger);
+            else{
+                Intake.setPower(0);
             }
+
 
 
 
@@ -130,10 +118,6 @@ public class TestTeleOp extends LinearOpMode {
                     leftFrontDrive.getPower(), rightFrontDrive.getPower());
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f",
                     leftBackDrive.getPower(), rightBackDrive.getPower());
-            telemetry.addData("Intake  Dc/Index", "%4.2f, %4.2f",
-                    Intake.getPower(), Indexing.getPosition());
-            telemetry.addData("Shooting  FlyWheel/PitchL", "%4.2f, %4.2f",
-                    FlyWheel.getPower(), PitchL.getPosition());
 
             telemetry.update();
         }
