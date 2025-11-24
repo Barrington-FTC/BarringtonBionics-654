@@ -19,6 +19,13 @@ public class TestTeleOp extends LinearOpMode {
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
     private DcMotor Intake = null;
+    private DcMotor Indexer = null;
+    private DcMotor Flywheel = null;
+
+    private Servo leftKicker =null;
+    private Servo rightKicker =null;
+
+
 
 
     //Constants
@@ -31,7 +38,7 @@ public class TestTeleOp extends LinearOpMode {
     private static final int Center = 0;
     private static final int Right = 0;
     //Kicker
-    private static final int Extended = 0;
+    private static final int Extended = 1;
     private static final int Retracted = 0;
 
 
@@ -42,10 +49,18 @@ public class TestTeleOp extends LinearOpMode {
         leftBackDrive = hardwareMap.get(DcMotor.class, "leftBackDrive");
         rightFrontDrive = hardwareMap.get(DcMotor.class, "rightFrontDrive");
         rightBackDrive = hardwareMap.get(DcMotor.class, "rightBackDrive");
+        Indexer = hardwareMap.get(DcMotor.class, "Indexer");
+        Flywheel = hardwareMap.get(DcMotor.class, "Flywheel");
+        leftKicker = hardwareMap.get(Servo.class, "Flywheel");
+        rightKicker = hardwareMap.get(Servo.class, "Flywheel");
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
+        Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
+        Flywheel.setDirection(DcMotorSimple.Direction.FORWARD);
+        leftKicker.setDirection(Servo.Direction.FORWARD);
+        rightKicker.setDirection(Servo.Direction.FORWARD);
         setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         //intake
@@ -107,6 +122,30 @@ public class TestTeleOp extends LinearOpMode {
             else{
                 Intake.setPower(0);
             }
+            if(gamepad1.left_trigger >0.01){
+                Flywheel.setPower(gamepad1.left_trigger);
+            }
+            else{
+                Flywheel.setPower(0);
+            }
+
+            if(gamepad1.a){
+                leftKicker.setPosition(1);
+                rightKicker.setPosition(1);
+                leftKicker.setPosition(0);
+                rightKicker.setPosition(0);
+            }
+            if(gamepad1.left_bumper){
+                Indexer.setPower(0.5);
+            }
+            else if(gamepad1.right_bumper){
+                Indexer.setPower(0.5);
+            }
+            else{
+                Indexer.setPower(0);
+            }
+
+
 
 
 
