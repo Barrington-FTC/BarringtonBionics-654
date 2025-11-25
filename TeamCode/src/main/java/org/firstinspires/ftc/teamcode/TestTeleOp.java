@@ -51,8 +51,8 @@ public class TestTeleOp extends LinearOpMode {
         rightBackDrive = hardwareMap.get(DcMotor.class, "rightBackDrive");
         Indexer = hardwareMap.get(DcMotor.class, "Indexer");
         Flywheel = hardwareMap.get(DcMotor.class, "Flywheel");
-        leftKicker = hardwareMap.get(Servo.class, "Flywheel");
-        rightKicker = hardwareMap.get(Servo.class, "Flywheel");
+        leftKicker = hardwareMap.get(Servo.class, "leftKicker");
+        rightKicker = hardwareMap.get(Servo.class, "rightKicker");
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
@@ -65,10 +65,9 @@ public class TestTeleOp extends LinearOpMode {
 
         //intake
         Intake = hardwareMap.get(DcMotor.class, "Intake");
-
         Intake.setDirection(DcMotorSimple.Direction.FORWARD);
-
-
+        leftKicker.setPosition(1);
+        rightKicker.setPosition(0);
         //shooting
 
 
@@ -130,9 +129,10 @@ public class TestTeleOp extends LinearOpMode {
             }
 
             if(gamepad1.a){
-                leftKicker.setPosition(1);
-                rightKicker.setPosition(1);
                 leftKicker.setPosition(0);
+                rightKicker.setPosition(1);
+                sleep(1000);
+                leftKicker.setPosition(1);
                 rightKicker.setPosition(0);
             }
             if(gamepad1.left_bumper){
