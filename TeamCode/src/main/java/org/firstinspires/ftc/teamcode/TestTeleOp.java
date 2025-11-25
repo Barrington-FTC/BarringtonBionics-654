@@ -131,15 +131,15 @@ public class TestTeleOp extends LinearOpMode {
             if(gamepad1.a){
                 leftKicker.setPosition(0);
                 rightKicker.setPosition(1);
-                sleep(1000);
+                sleep(750);
                 leftKicker.setPosition(1);
                 rightKicker.setPosition(0);
             }
             if(gamepad1.left_bumper){
-                Indexer.setPower(0.5);
+                Indexer.setPower(-0.2);
             }
             else if(gamepad1.right_bumper){
-                Indexer.setPower(0.5);
+                Indexer.setPower(0.2);
             }
             else{
                 Indexer.setPower(0);
