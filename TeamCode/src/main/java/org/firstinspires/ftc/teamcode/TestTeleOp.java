@@ -92,7 +92,7 @@ public class TestTeleOp extends LinearOpMode {
         Thread indexerPIDThread = new Thread(this::indexerPIDLoop);
         waitForStart();
         indexerPIDThread.start();
-        Indexer.setTargetPosition(intakepos[0]);
+        TargetPosition = intakepos[0];
 
         while (opModeIsActive()) { // Loop
 
@@ -158,31 +158,29 @@ public class TestTeleOp extends LinearOpMode {
                 if(currentShooting<0){
                     currentShooting=2;
                 }
-                Indexer.setTargetPosition(shootingpos[currentShooting]);
+                TargetPosition = currentShooting;
             }
             if(gamepad1.dpad_up){
                 currentShooting++;
                 if(currentShooting>2){
                     currentShooting=0;
                 }
-                Indexer.setTargetPosition(shootingpos[currentShooting]);
-
+                TargetPosition = currentShooting;
             }
             if(gamepad1.dpad_left){
-                    currentIntake++;
-                    if(currentIntake>2){
-                        currentIntake=0;
-                    }
-                    Indexer.setTargetPosition(intakepos[currentIntake]);
+                currentIntake++;
+                if(currentIntake>2){
+                    currentIntake=0;
+                }
+                TargetPosition = currentIntake;
             }
             if(gamepad1.dpad_right){
                 currentIntake--;
                 if(currentIntake<0){
                     currentIntake=2;
                 }
-                Indexer.setTargetPosition(intakepos[currentIntake]);
+                TargetPosition = currentIntake;
             }
-
 
 
 
@@ -197,6 +195,8 @@ public class TestTeleOp extends LinearOpMode {
                     leftBackDrive.getPower(), rightBackDrive.getPower());
             telemetry.addData("Indexer Position", "%d",
                     Indexer.getCurrentPosition());
+            telemetry.addData("Indexer Target Position", "%d",
+                    TargetPosition);
             telemetry.update();
         }
     }
