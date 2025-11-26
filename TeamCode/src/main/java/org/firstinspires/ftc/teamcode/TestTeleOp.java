@@ -10,6 +10,13 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.LLStatus;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+
+import java.util.List;
+
 @Config
 @TeleOp(name="TestTeleOp")
 public class TestTeleOp extends LinearOpMode {
@@ -24,7 +31,7 @@ public class TestTeleOp extends LinearOpMode {
 
     private Servo leftKicker =null;
     private Servo rightKicker =null;
-
+    Limelight3A limelight;
 
 
 
@@ -52,8 +59,25 @@ public class TestTeleOp extends LinearOpMode {
     int TargetPosition = 0;
     private PIDControllerRyan indexerPID = null;
 
+    //constants for Limlight
+
+    private static final double llHeight = 0;
+    private static final double flyWheelR = 0;
+    int targetID = 0;
+    double tx = 0;
+    double ty = 0;
+
+    boolean canSeeTarget = false;
+
     @Override
     public void runOpMode() {
+
+        //Lime Light
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.setPollRateHz(100); // This sets how often we ask Limelight for data (100 times per second)
+        limelight.start();
+        limelight.pipelineSwitch(0);
+
         //base
         leftFrontDrive = hardwareMap.get(DcMotor.class, "leftFrontDrive");
         leftBackDrive = hardwareMap.get(DcMotor.class, "leftBackDrive");
@@ -205,7 +229,28 @@ public class TestTeleOp extends LinearOpMode {
                 Indexer.setPower(power);
             sleep(1);
     }
-    // Dedicated method for the PID loop
+    // Dedicated method for the Limlight;
+
+    private void limeLightLoop() {
+        LLResult result = limelight.getLatestResult();
+        List<LLResultTypes.FiducialResult> fiducials = result.getFiducialResults();
+        boolean isfound = false;
+        for (LLResultTypes.FiducialResult fiducial : fiducials) {
+            int id = fiducial.getFiducialId(); // The ID number of the fiducial
+            if (id == targetID) {
+                tx = fiducial.getTargetXDegrees(); // Where it is (left-right)
+                ty = fiducial.getTargetYDegrees(); // Where it is (up-down)
+                isfound = true;
+
+            }
+        }
+        if (isfound == false){
+            canSeeTarget = false;
+        }
+        else{
+            canSeeTarget = true;
+        }
+    }
     private void setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior behavior) {
         leftFrontDrive.setZeroPowerBehavior(behavior);
         leftBackDrive.setZeroPowerBehavior(behavior);
