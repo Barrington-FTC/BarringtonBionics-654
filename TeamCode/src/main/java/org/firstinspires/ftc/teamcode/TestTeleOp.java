@@ -44,9 +44,7 @@ public class TestTeleOp extends LinearOpMode {
     private static final int Left = 0;
     private static final int Center = 0;
     private static final int Right = 0;
-    //Kicker
-    private static final int Extended = 1;
-    private static final int Retracted = 0;
+    //constants for indexer
     int[] intakepos = {one,three,five};
     int[] shootingpos = {two,four,six};
     int currentIntake = 0;
@@ -158,28 +156,28 @@ public class TestTeleOp extends LinearOpMode {
                 if(currentShooting<0){
                     currentShooting=2;
                 }
-                TargetPosition = currentShooting;
+                TargetPosition = shootingpos[currentShooting];
             }
             if(gamepad1.dpad_up){
                 currentShooting++;
                 if(currentShooting>2){
                     currentShooting=0;
                 }
-                TargetPosition = currentShooting;
+                TargetPosition = shootingpos[currentShooting];
             }
             if(gamepad1.dpad_left){
                 currentIntake++;
                 if(currentIntake>2){
                     currentIntake=0;
                 }
-                TargetPosition = currentIntake;
+                TargetPosition = intakepos[currentIntake];
             }
             if(gamepad1.dpad_right){
                 currentIntake--;
                 if(currentIntake<0){
                     currentIntake=2;
                 }
-                TargetPosition = currentIntake;
+                TargetPosition = intakepos[currentIntake];
             }
 
 
