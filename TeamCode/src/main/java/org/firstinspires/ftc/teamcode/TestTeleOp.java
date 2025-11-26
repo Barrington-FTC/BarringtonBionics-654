@@ -31,7 +31,7 @@ public class TestTeleOp extends LinearOpMode {
 
     private Servo leftKicker =null;
     private Servo rightKicker =null;
-    Limelight3A limelight;
+   // Limelight3A limelight;
 
 
 
@@ -56,8 +56,9 @@ public class TestTeleOp extends LinearOpMode {
     int[] shootingpos = {two,four,six};
     int currentIntake = 0;
     int currentShooting = 0;
-    int TargetPosition = 0;
+    int TargetPosition = intakepos[0];
     private PIDControllerRyan indexerPID = null;
+    private PIDTuner pidTuner = null;
 
     //constants for Limlight
 
@@ -73,11 +74,10 @@ public class TestTeleOp extends LinearOpMode {
     public void runOpMode() {
 
         //Lime Light
-        limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.setPollRateHz(100); // This sets how often we ask Limelight for data (100 times per second)
-        limelight.start();
-        limelight.pipelineSwitch(0);
-
+       // limelight = hardwareMap.get(Limelight3A.class, "limelight");
+       // limelight.setPollRateHz(100); // This sets how often we ask Limelight for data (100 times per second)
+       // limelight.start();
+       // limelight.pipelineSwitch(0);
         //base
         leftFrontDrive = hardwareMap.get(DcMotor.class, "leftFrontDrive");
         leftBackDrive = hardwareMap.get(DcMotor.class, "leftBackDrive");
@@ -92,6 +92,7 @@ public class TestTeleOp extends LinearOpMode {
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
         Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
+        Indexer.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         Flywheel.setDirection(DcMotorSimple.Direction.FORWARD);
         leftKicker.setDirection(Servo.Direction.FORWARD);
         rightKicker.setDirection(Servo.Direction.FORWARD);
@@ -110,15 +111,15 @@ public class TestTeleOp extends LinearOpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
-        indexerPID = new PIDControllerRyan(0.1, 0, 0, 3, Indexer);
+        indexerPID = new PIDControllerRyan(0.025, 0.005, 0.005, 0, Indexer);
+        pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
         Thread indexerPIDThread = new Thread(this::indexerPIDLoop);
         waitForStart();
         indexerPIDThread.start();
-        TargetPosition = intakepos[0];
 
         while (opModeIsActive()) { // Loop
 
-
+            pidTuner.update();
 
             // --------------------------- WHEELS --------------------------- //
             // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
@@ -181,6 +182,7 @@ public class TestTeleOp extends LinearOpMode {
                     currentShooting=2;
                 }
                 TargetPosition = shootingpos[currentShooting];
+
             }
             if(gamepad1.dpad_up){
                 currentShooting++;
@@ -188,6 +190,7 @@ public class TestTeleOp extends LinearOpMode {
                     currentShooting=0;
                 }
                 TargetPosition = shootingpos[currentShooting];
+
             }
             if(gamepad1.dpad_left){
                 currentIntake++;
@@ -195,6 +198,7 @@ public class TestTeleOp extends LinearOpMode {
                     currentIntake=0;
                 }
                 TargetPosition = intakepos[currentIntake];
+
             }
             if(gamepad1.dpad_right){
                 currentIntake--;
@@ -202,6 +206,7 @@ public class TestTeleOp extends LinearOpMode {
                     currentIntake=2;
                 }
                 TargetPosition = intakepos[currentIntake];
+
             }
 
 
@@ -225,12 +230,16 @@ public class TestTeleOp extends LinearOpMode {
 
     // Dedicated method for the PID loop
     private void indexerPIDLoop() {
-                double power = indexerPID.update(TargetPosition);
-                Indexer.setPower(power);
-            sleep(1);
+        while (opModeIsActive() && !isStopRequested()) { // Loop until OpMode stops
+            // The PID controller calculates the necessary power to reach the TargetPosition
+            double power = indexerPID.update(TargetPosition); // Use the D-pad updated TargetPosition
+            Indexer.setPower(power);
+            // Sleep to prevent the loop from hogging the CPU
+            sleep(20); // Sleep for 20ms (a 50Hz loop is common for PID)
+        }
     }
     // Dedicated method for the Limlight;
-
+/*
     private void limeLightLoop() {
         LLResult result = limelight.getLatestResult();
         List<LLResultTypes.FiducialResult> fiducials = result.getFiducialResults();
@@ -251,6 +260,8 @@ public class TestTeleOp extends LinearOpMode {
             canSeeTarget = true;
         }
     }
+
+ */
     private void setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior behavior) {
         leftFrontDrive.setZeroPowerBehavior(behavior);
         leftBackDrive.setZeroPowerBehavior(behavior);
