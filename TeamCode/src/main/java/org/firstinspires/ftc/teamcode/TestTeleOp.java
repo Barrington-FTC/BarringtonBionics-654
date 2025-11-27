@@ -111,7 +111,7 @@ public class TestTeleOp extends LinearOpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
-        indexerPID = new PIDControllerRyan(0.025, 0.005, 0.005, 0, Indexer);
+        indexerPID = new PIDControllerRyan(0, 0, 0, 3, Indexer);
         pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
         Thread indexerPIDThread = new Thread(this::indexerPIDLoop);
         waitForStart();
