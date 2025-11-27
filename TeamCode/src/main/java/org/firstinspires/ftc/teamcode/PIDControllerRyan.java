@@ -92,10 +92,10 @@ public class PIDControllerRyan {
         double power = p + i + d;
 
         // Output clamping and deadband
-        if (power > 1.0) {
-            power = 1.0;
-        } else if (power < -1.0) {
-            power = -1.0;
+        if (power > 0.90) {
+            power = 0.9;
+        } else if (power < -.9) {
+            power = -.9;
         } else if ((power < 0.01 && power > 0) || (power > -0.01 && power < 0)) {
             power = 0;
         }

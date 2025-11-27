@@ -37,11 +37,11 @@ public class TestTeleOp extends LinearOpMode {
 
     //Constants
     //indexer
-    private static final int one = 2; //intake
+    private static final int one = 0; //intake
     private static final int two = 109; // shooting
-    private static final int three = 182;//intake
+    private static final int three = 180;//intake
     private static final int four = 293;//shooting
-    private static final int five = 369;//intake
+    private static final int five = 360;//intake
     private static final int six = 470;//shooting
 
 
@@ -111,7 +111,7 @@ public class TestTeleOp extends LinearOpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
-        indexerPID = new PIDControllerRyan(0, 0, 0, 3, Indexer);
+        indexerPID = new PIDControllerRyan(0.005, 0.0001, 0.0002, 3, Indexer);
         pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
         Thread indexerPIDThread = new Thread(this::indexerPIDLoop);
         waitForStart();
@@ -192,7 +192,7 @@ public class TestTeleOp extends LinearOpMode {
                 TargetPosition = shootingpos[currentShooting];
 
             }
-            if(gamepad1.dpad_left){
+            if(gamepad1.dpad_right){
                 currentIntake++;
                 if(currentIntake>2){
                     currentIntake=0;
@@ -200,7 +200,7 @@ public class TestTeleOp extends LinearOpMode {
                 TargetPosition = intakepos[currentIntake];
 
             }
-            if(gamepad1.dpad_right){
+            if(gamepad1.dpad_left){
                 currentIntake--;
                 if(currentIntake<0){
                     currentIntake=2;
