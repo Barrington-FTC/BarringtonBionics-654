@@ -37,7 +37,14 @@ public class TestTeleOp extends LinearOpMode {
 
     //Constants
     //indexer
-    private static final int one = 0; //intake
+
+    int ballOne = 90;
+    int ballTwo = ballOne+180;
+    int ballThree= ballTwo +180;
+
+    boolean lastintake = true;
+    int segments = 0; //if moved too intake + 2 rotations moved to shooting + 1
+    private static final int one = 90; //intake
     private static final int two = 109; // shooting
     private static final int three = 180;//intake
     private static final int four = 293;//shooting
@@ -56,7 +63,7 @@ public class TestTeleOp extends LinearOpMode {
     int[] shootingpos = {two,four,six};
     int currentIntake = 0;
     int currentShooting = 0;
-    int TargetPosition = intakepos[0];
+    int TargetPosition = ballOne;
     private PIDControllerRyan indexerPID = null;
     private PIDTuner pidTuner = null;
 
@@ -176,41 +183,59 @@ public class TestTeleOp extends LinearOpMode {
                 leftKicker.setPosition(1);
                 rightKicker.setPosition(0);
             }
-            if(gamepad1.dpad_down){
-                currentShooting--;
-                if(currentShooting<0){
-                    currentShooting=2;
+            if(gamepad1.dpadDownWasPressed()){
+                if(lastintake){
+                    lastintake = false;
+                    ballOne = ballOne - 90;
+                    segments -= 3;
+                    TargetPosition = ballOne;
                 }
-                TargetPosition = shootingpos[currentShooting];
+                else{
+                    ballOne = ballOne - 180;
+                    segments -= 1;
+                    TargetPosition = ballOne;
+                }
+            }
+            if(gamepad1.dpadUpWasPressed()){
+                if(lastintake){
+                    lastintake = false;
+                    ballOne = ballOne + 90;
+                    segments += 2;
+                    TargetPosition = ballOne;
+                }
+                else{
+                    ballOne = ballOne + 180;
+                    segments += 1;
+                    TargetPosition = ballOne;
+                }
+            }
+            if(gamepad1.dpadRightWasPressed()){
+                if(!lastintake){
+                    lastintake = true;
+                    ballOne = ballOne + 90;
+                    segments += 1;
+                    TargetPosition = ballOne;
+                }
+                else{
+                    ballOne = ballOne + 180;
+                    segments += 2;
+                    TargetPosition = ballOne;
+                }
+            }
+            if(gamepad1.dpadLeftWasPressed()){
+                if(!lastintake){
+                    lastintake = true;
+                    ballOne = ballOne - 90;
+                    segments -= 1;
+                    TargetPosition = ballOne;
+                }
+                else{
+                    ballOne = ballOne - 180;
+                    segments -= 2;
+                    TargetPosition = ballOne;
+                }
 
             }
-            if(gamepad1.dpad_up){
-                currentShooting++;
-                if(currentShooting>2){
-                    currentShooting=0;
-                }
-                TargetPosition = shootingpos[currentShooting];
-
-            }
-            if(gamepad1.dpad_right){
-                currentIntake++;
-                if(currentIntake>2){
-                    currentIntake=0;
-                }
-                TargetPosition = intakepos[currentIntake];
-
-            }
-            if(gamepad1.dpad_left){
-                currentIntake--;
-                if(currentIntake<0){
-                    currentIntake=2;
-                }
-                TargetPosition = intakepos[currentIntake];
-
-            }
-
-
-
 
 
             // --------------------------- TELEMETRY --------------------------- //
