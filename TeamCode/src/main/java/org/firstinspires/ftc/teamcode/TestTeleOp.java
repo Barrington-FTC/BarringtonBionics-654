@@ -32,16 +32,26 @@ public class TestTeleOp extends LinearOpMode {
     private Servo leftKicker =null;
     private Servo rightKicker =null;
    // Limelight3A limelight;
-
-
-
     //Constants
     //indexer
-
-    int ballOne = 90;
+    int rotationCounter = 360;
+    int ballOne = 0;
     int ballTwo = ballOne+180;
     int ballThree= ballTwo +180;
+    int[] ordera = {2,1,1};
+    int[] orderb = {1,2,1};
+    int[] orderc = {1,1,2};
+    int[] targetOrder = {1};
+    int ballOneColor = 0;// 0 acts as null 1 is purple 2 is green
+    int ballTwoColor = 0;// 0 acts as null 1 is purple 2 is green
+    int ballThreeColor = 0;// 0 acts as null 1 is purple 2 is green
 
+    boolean ballOneCounted = false;
+    boolean ballTwoCounted = false;
+    boolean ballThreeCounted = false;
+    int[] ballPosArray = {ballOne,ballTwo,ballThree};
+    int[] ballColorArray = {ballOneColor,ballTwoColor,ballThreeColor};
+    int Shootingpos = ballTwo+90;
     boolean lastintake = true;
     int segments = 0; //if moved too intake + 2 rotations moved to shooting + 1
     private static final int one = 90; //intake
@@ -59,11 +69,8 @@ public class TestTeleOp extends LinearOpMode {
     private static final int Center = 0;
     private static final int Right = 0;
     //constants for indexer
-    int[] intakepos = {one,three,five};
-    int[] shootingpos = {two,four,six};
-    int currentIntake = 0;
-    int currentShooting = 0;
-    int TargetPosition = ballOne;
+    private ColorSensorV3 colorSensor;
+    int TargetPosition = 0;
     private PIDControllerRyan indexerPID = null;
     private PIDTuner pidTuner = null;
 
@@ -118,15 +125,57 @@ public class TestTeleOp extends LinearOpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
-        indexerPID = new PIDControllerRyan(0.005, 0.0001, 0.0002, 3, Indexer);
+        indexerPID = new PIDControllerRyan(0.005, 0.0001, 0.0002, 0, Indexer);
         pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
         Thread indexerPIDThread = new Thread(this::indexerPIDLoop);
+        colorSensor = new ColorSensorV3(hardwareMap, telemetry, "colorSensor");
         waitForStart();
         indexerPIDThread.start();
 
         while (opModeIsActive()) { // Loop
-
+            colorSensor.addTelemetry();
             pidTuner.update();
+            //color sensor;
+            if(TargetPosition == ballOne && !ballOneCounted){
+                if(colorSensor.isPurple()){
+                    ballOneColor=1;
+                    ballOneCounted = true;
+                }
+                else if(colorSensor.isGreen()){
+                    ballOneColor=2;
+                    ballOneCounted = true;
+                }
+                else{
+                    ballOneColor=0;
+                }
+            }
+            else if(TargetPosition == ballTwo && !ballTwoCounted){
+                if(colorSensor.isPurple()){
+                    ballTwoColor=1;
+                    ballTwoCounted = true;
+                }
+                else if(colorSensor.isGreen()){
+                    ballTwoColor=2;
+                    ballTwoCounted = true;
+                }
+                else{
+                    ballTwoColor=0;
+                }
+            }
+            else if(TargetPosition == ballThree && !ballThreeCounted){
+                if(colorSensor.isPurple()){
+                    ballThreeColor=1;
+                    ballThreeCounted = true;
+                }
+                else if(colorSensor.isGreen()){
+                    ballThreeColor=2;
+                    ballThreeCounted = true;
+                }
+                else{
+                    ballThreeColor=0;
+                }
+            }
+
 
             // --------------------------- WHEELS --------------------------- //
             // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
@@ -183,58 +232,90 @@ public class TestTeleOp extends LinearOpMode {
                 leftKicker.setPosition(1);
                 rightKicker.setPosition(0);
             }
-            if(gamepad1.dpadDownWasPressed()){
-                if(lastintake){
-                    lastintake = false;
-                    ballOne = ballOne - 90;
-                    segments -= 3;
-                    TargetPosition = ballOne;
-                }
-                else{
-                    ballOne = ballOne - 180;
-                    segments -= 1;
-                    TargetPosition = ballOne;
-                }
-            }
             if(gamepad1.dpadUpWasPressed()){
+                int temp = TargetPosition;
                 if(lastintake){
                     lastintake = false;
-                    ballOne = ballOne + 90;
-                    segments += 2;
-                    TargetPosition = ballOne;
+                    temp += 90;
                 }
                 else{
-                    ballOne = ballOne + 180;
-                    segments += 1;
-                    TargetPosition = ballOne;
+                    temp+=180;
                 }
+                if(temp > rotationCounter){
+                    ballOne+=540;
+                    ballTwo= ballOne + 180;
+                    ballThree = ballTwo + 180;
+                    rotationCounter += 360;
+                    Shootingpos = ballTwo + 90;
+                }
+                TargetPosition = temp;
             }
             if(gamepad1.dpadRightWasPressed()){
+                int temp = TargetPosition;
                 if(!lastintake){
                     lastintake = true;
-                    ballOne = ballOne + 90;
-                    segments += 1;
-                    TargetPosition = ballOne;
+                    temp += 90;
                 }
                 else{
-                    ballOne = ballOne + 180;
-                    segments += 2;
-                    TargetPosition = ballOne;
+                    temp += 180;
                 }
-            }
-            if(gamepad1.dpadLeftWasPressed()){
-                if(!lastintake){
-                    lastintake = true;
-                    ballOne = ballOne - 90;
-                    segments -= 1;
-                    TargetPosition = ballOne;
+                if(temp > rotationCounter){
+                    ballOne+=540;
+                    ballTwo= ballOne + 180;
+                    ballThree = ballTwo + 180;
+                    rotationCounter += 360;
+                    Shootingpos = ballTwo + 90;
                 }
-                else{
-                    ballOne = ballOne - 180;
-                    segments -= 2;
-                    TargetPosition = ballOne;
-                }
+                TargetPosition = temp;
 
+            }
+            if(gamepad1.xWasPressed()){
+                int[] ballPosArray = {ballOne,ballTwo,ballThree};
+                int[] ballColorArray = {ballOneColor,ballTwoColor,ballThreeColor};
+                boolean[] ballCountedArray = {ballOneCounted,ballTwoCounted,ballThreeCounted};
+                for(int target : targetOrder){
+                    for(int i = 0; i<3; i++){
+                        if(ballColorArray[i] == target){
+                            lastintake = false;
+                            if(ballCountedArray[i] == ballOneCounted){
+                                ballOneCounted = false;
+                            }
+                            else if(ballCountedArray[i] == ballTwoCounted){
+                                ballTwoCounted = false;
+                            }
+                            else{
+                                ballThreeCounted = false;
+                            }
+                            // error here
+                            if(ballPosArray[i] < Shootingpos){
+                                int diff = ballPosArray[i] - Shootingpos;
+                                int temp = ballPosArray[i] + diff;
+                                if(temp > rotationCounter){
+                                    rotationCounter += 360;
+                                    ballOne+=540;
+                                    ballTwo= ballOne + 180;
+                                    ballThree = ballTwo + 180;
+                                    Shootingpos = ballTwo + 90;
+                                    TargetPosition = temp;
+                                }
+                            }
+                            else{
+                                int diff = ballPosArray[i] + 540 - Shootingpos;
+                                int temp = ballPosArray[i] + diff;
+                                if(temp > rotationCounter){
+                                    rotationCounter += 360;
+                                    ballOne+=540;
+                                    ballTwo= ballOne + 180;
+                                    ballThree = ballTwo + 180;
+                                    Shootingpos = ballTwo + 90;
+                                    TargetPosition = temp;
+                                }
+
+                            }
+                        }
+                    }
+
+                }
             }
 
 
@@ -249,6 +330,17 @@ public class TestTeleOp extends LinearOpMode {
                     Indexer.getCurrentPosition());
             telemetry.addData("Indexer Target Position", "%d",
                     TargetPosition);
+            telemetry.addData("Target order", targetOrder);
+            telemetry.addData("Ball one pos", ballOne);
+            telemetry.addData("Ball two pos ", ballTwo);
+            telemetry.addData("Ball three pos", ballThree);
+            telemetry.addData("Ball one color", ballOneColor);
+            telemetry.addData("Ball two color", ballTwoColor);
+            telemetry.addData("Ball three color", ballThreeColor);
+            telemetry.addData("Ball one counted", ballOneCounted);
+            telemetry.addData("Ball two counted", ballTwoCounted);
+            telemetry.addData("Ball three counted", ballThreeCounted);
+            telemetry.addData("Shootingpos", Shootingpos);
             telemetry.update();
         }
     }
