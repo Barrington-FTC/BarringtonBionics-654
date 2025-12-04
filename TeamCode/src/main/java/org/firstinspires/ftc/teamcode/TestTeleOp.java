@@ -477,12 +477,6 @@ public class TestTeleOp extends LinearOpMode {
     }
         sleep(10);
     }
-
-
-    public void Calculate(){
-        TargetX = (Math.tan(ty - LL_OFFSET)*TargetY) + targetXOffset;
-        solveShot(TargetX,TargetY,10);
-    }
     public static double speedToRPM(double launchSpeed) {
         double wheelOmega = launchSpeed / (WHEEL_RADIUS * SLIP_FACTOR);
         return (wheelOmega * 60.0) / (2.0 * Math.PI);
@@ -534,46 +528,52 @@ public class TestTeleOp extends LinearOpMode {
 
         return null;
     }
-    public static Double solveAngle(double v0, double spin, double x, double yTarget) {
+    public static final double HEIGHT_DIFF_METERS = 0.60; // Example: 60cm difference
+    // Angle your limelight is mounted at (Degrees). 0 = pointing straight forward, 20 = angled up.
+    public static final double LL_MOUNT_ANGLE = 20.0;
 
-        double low = Math.toRadians(5);
-        double high = Math.toRadians(80);
+    public void Calculate() {
+        if (!canSeeTarget) return;
 
-        for (int i = 0; i < 40; i++) {
-            double mid = (low + high) / 2.0;
+        // 1. CONVERT TO RADIANS
+        // Limelight gives degrees, Java Math wants radians.
+        double angleToGoalDegrees = LL_MOUNT_ANGLE + ty;
+        double angleToGoalRadians = Math.toRadians(angleToGoalDegrees);
 
-            Double yAtX = simulateTrajectory(v0, mid, spin, x);
-            if (yAtX == null) {
-                low = mid;
-            } else if (yAtX > yTarget) {
-                high = mid;
-            } else {
-                low = mid;
-            }
-        }
+        // 2. CALCULATE DISTANCE (Horizontal X)
+        // Tan(theta) = Opposite / Adjacent -> Adjacent = Opposite / Tan(theta)
+        // Distance = HeightDiff / Tan(Angle)
+        double distanceFromLimelight = HEIGHT_DIFF_METERS / Math.tan(angleToGoalRadians);
 
-        return (low + high) / 2.0;
+        // Add offset if the goal center is deeper than the rim
+        TargetX = distanceFromLimelight + targetXOffset;
+
+        // 3. SOLVE
+        // We want to hit a specific height (TargetY) relative to the shooter
+        // Note: TargetY in solveShot should be the height of the goal relative to the shooter nozzle
+        solveShot(TargetX, HEIGHT_DIFF_METERS, 10);
     }
-    //spin is radians per second of the ball spinning in the air 
+
     public static void solveShot(double x, double yTarget, double spin) {
-
         double lowSpeed = 1.0;
-        double highSpeed = 40.0; // upper bound for search (change if needed)
-
+        double highSpeed = 40.0;
         double bestSpeed = highSpeed;
         double bestAngle = 0;
 
-        for (int i = 0; i < 40; i++) {
+        // Binary search for the minimum SPEED required
+        for (int i = 0; i < 20; i++) {
             double midSpeed = (lowSpeed + highSpeed) / 2.0;
 
-            double angle = solveAngle(midSpeed, spin, x, yTarget);
+            // Try to find an angle that works for this speed
+            Double angleResult = solveAngle(midSpeed, spin, x, yTarget);
 
-            if (angle == 0) {
+            if (angleResult == null) {
+                // This speed is too slow to reach the target even at optimal angle
                 lowSpeed = midSpeed;
             } else {
-                // we found a reachable speed — try lower
+                // This speed works! Let's see if we can go slower (usually better for accuracy)
                 bestSpeed = midSpeed;
-                bestAngle = angle;
+                bestAngle = angleResult;
                 highSpeed = midSpeed;
             }
         }
@@ -581,6 +581,53 @@ public class TestTeleOp extends LinearOpMode {
         VF = bestSpeed;
         VA = bestAngle;
         VRPM = speedToRPM(bestSpeed);
+    }
+
+    public static Double solveAngle(double v0, double spin, double x, double yTarget) {
+        // Search range for launch angle (e.g., 10 to 60 degrees)
+        double low = Math.toRadians(10);
+        double high = Math.toRadians(60);
+
+        boolean solutionFound = false;
+        double finalAngle = 0;
+
+        // Binary search for the ANGLE
+        for (int i = 0; i < 20; i++) {
+            double mid = (low + high) / 2.0;
+
+            Double yAtX = simulateTrajectory(v0, mid, spin, x);
+
+            if (yAtX == null) {
+                // Ball hit ground before target X, need to aim higher
+                low = mid;
+            } else {
+                double error = yAtX - yTarget;
+
+                // Tolerance check: if we are within 5cm of target height, it's good
+                if (Math.abs(error) < 0.05) {
+                    return mid;
+                }
+
+                if (yAtX > yTarget) {
+                    // Shot went too high, aim lower
+                    // (Note: For high velocity, higher angle = higher impact)
+                    high = mid;
+                } else {
+                    // Shot went too low, aim higher
+                    low = mid;
+                }
+            }
+        }
+
+        // If the loop finishes and low/high converged but didn't hit 'null',
+        // we check if the result is close enough. If not, return null.
+        // This prevents the code from returning a valid angle when the ball actually falls short.
+        Double finalY = simulateTrajectory(v0, (low+high)/2.0, spin, x);
+        if (finalY != null && Math.abs(finalY - yTarget) < 0.2) { // 20cm tolerance for "valid calculation"
+            return (low + high) / 2.0;
+        }
+
+        return null; // No valid angle found for this speed
     }
 
     private void Kick(){
