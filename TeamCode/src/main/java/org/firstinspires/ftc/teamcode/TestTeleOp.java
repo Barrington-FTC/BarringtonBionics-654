@@ -33,6 +33,8 @@ public class TestTeleOp extends LinearOpMode {
 
     private Servo leftKicker =null;
     private Servo rightKicker =null;
+
+    private Servo Pitch = null;
     Limelight3A limelight;
     //Constants
     //indexer
@@ -76,11 +78,11 @@ public class TestTeleOp extends LinearOpMode {
     private FlywheelPIDController flywheelPID = null;
 
     //constants for Limlight
-    private static final double WHEEL_RADIUS = 0.10;   // meters
+    private static final double WHEEL_RADIUS = .096;   // meters
     private static final double SLIP_FACTOR = 1.0;     // 1.0 = no slip
 
     // Ball properties
-    private static final double BALL_RADIUS = 0.0635;  // 5" diameter = 0.127m
+    private static final double BALL_RADIUS = .127;  // 5" diameter = 0.127m
     private static final double BALL_AREA = Math.PI * BALL_RADIUS * BALL_RADIUS;
     private static final double BALL_MASS = 0.20;      // kg — adjust for your ball
     // Air properties
@@ -95,13 +97,16 @@ public class TestTeleOp extends LinearOpMode {
     private static final double DT = 0.002;            // time step (seconds)
     private static final double MAX_TIME = 5.0;
 
-    public static final double LL_OFFSET = 0; //Limelight offset degrees
+    public static final double LL_OFFSET = 15.3; //Limelight offset degrees
+    public static final double HEIGHT_DIFF_METERS = 0.60; // Example: 60cm difference
+    // Angle your limelight is mounted at (Degrees). 0 = pointing straight forward, 20 = angled up.
+    public static final double LL_MOUNT_ANGLE = 15.3;
 
-    public static final double targetXOffset = 0; //distance from edge of hoop to center or best place ball to land
+    public static final double targetXOffset = 0.635; //distance from edge of hoop to center or best place ball to land // includes distance from ll to shooting hole
 
-    public static final double TargetY = 0; // height of the collection zone - height of lime light
+    public static final double TargetY = .98425 - HEIGHT_DIFF_METERS;; // height of the collection zone - height of lime light
 
-    double TargetX = 0;//find this
+    static double TargetX = 0;//find this
 
     double TargetAngle = 0;
 
@@ -109,8 +114,8 @@ public class TestTeleOp extends LinearOpMode {
     public static double VA = 0;
     public static double VRPM = 0;
 
-    private static final double llHeight = 0;
-    private static final double flyWheelR = 0;
+    private static final double llHeight = 260;
+    private static final double flyWheelR = 96;
     int targetID = 0;
     double tx = 0;
     double ty = 0;
@@ -144,6 +149,8 @@ public class TestTeleOp extends LinearOpMode {
         Flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         leftKicker.setDirection(Servo.Direction.FORWARD);
         rightKicker.setDirection(Servo.Direction.FORWARD);
+        Pitch = hardwareMap.get(Servo.class, "Pitch");
+        leftKicker.setDirection(Servo.Direction.FORWARD);// 0 is min angle 1 is max angle
         setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         //intake
@@ -280,6 +287,9 @@ public class TestTeleOp extends LinearOpMode {
                 }
                 TargetPosition = temp;
 
+            }
+            if(gamepad1.bWasPressed()){
+                Calculate();
             }
             if(Intakepos == ballOne && !ballOneCounted){
                 if(colorSensor.isPurple()){
@@ -528,12 +538,11 @@ public class TestTeleOp extends LinearOpMode {
 
         return null;
     }
-    public static final double HEIGHT_DIFF_METERS = 0.60; // Example: 60cm difference
-    // Angle your limelight is mounted at (Degrees). 0 = pointing straight forward, 20 = angled up.
-    public static final double LL_MOUNT_ANGLE = 20.0;
-
     public void Calculate() {
-        if (!canSeeTarget) return;
+        if (!canSeeTarget){
+            VRPM = 1500;
+            return;
+        };
 
         // 1. CONVERT TO RADIANS
         // Limelight gives degrees, Java Math wants radians.
@@ -543,7 +552,7 @@ public class TestTeleOp extends LinearOpMode {
         // 2. CALCULATE DISTANCE (Horizontal X)
         // Tan(theta) = Opposite / Adjacent -> Adjacent = Opposite / Tan(theta)
         // Distance = HeightDiff / Tan(Angle)
-        double distanceFromLimelight = HEIGHT_DIFF_METERS / Math.tan(angleToGoalRadians);
+        double distanceFromLimelight = (0.7493-HEIGHT_DIFF_METERS) / Math.tan(angleToGoalRadians);
 
         // Add offset if the goal center is deeper than the rim
         TargetX = distanceFromLimelight + targetXOffset;
@@ -551,7 +560,8 @@ public class TestTeleOp extends LinearOpMode {
         // 3. SOLVE
         // We want to hit a specific height (TargetY) relative to the shooter
         // Note: TargetY in solveShot should be the height of the goal relative to the shooter nozzle
-        solveShot(TargetX, HEIGHT_DIFF_METERS, 10);
+        //spin is radians per second
+        solveShot(TargetX, TargetY, 10);
     }
 
     public static void solveShot(double x, double yTarget, double spin) {
@@ -560,8 +570,10 @@ public class TestTeleOp extends LinearOpMode {
         double bestSpeed = highSpeed;
         double bestAngle = 0;
 
-        // Binary search for the minimum SPEED required
-        for (int i = 0; i < 20; i++) {
+        // Binary search for the minimum SPEED required m/s
+        for (int i = 100; i < 544; i++) {
+            lowSpeed += i;
+            highSpeed += i;
             double midSpeed = (lowSpeed + highSpeed) / 2.0;
 
             // Try to find an angle that works for this speed
@@ -587,47 +599,23 @@ public class TestTeleOp extends LinearOpMode {
         // Search range for launch angle (e.g., 10 to 60 degrees)
         double low = Math.toRadians(10);
         double high = Math.toRadians(60);
+        Double yAtX;
 
         boolean solutionFound = false;
         double finalAngle = 0;
-
-        // Binary search for the ANGLE
-        for (int i = 0; i < 20; i++) {
-            double mid = (low + high) / 2.0;
-
-            Double yAtX = simulateTrajectory(v0, mid, spin, x);
-
-            if (yAtX == null) {
-                // Ball hit ground before target X, need to aim higher
-                low = mid;
-            } else {
-                double error = yAtX - yTarget;
-
-                // Tolerance check: if we are within 5cm of target height, it's good
-                if (Math.abs(error) < 0.05) {
-                    return mid;
-                }
-
-                if (yAtX > yTarget) {
-                    // Shot went too high, aim lower
-                    // (Note: For high velocity, higher angle = higher impact)
-                    high = mid;
-                } else {
-                    // Shot went too low, aim higher
-                    low = mid;
-                }
+        if(TargetX > 1){
+           yAtX = simulateTrajectory(v0, high, spin, x);
+            if (yAtX != null) {
+                return high;
             }
         }
-
-        // If the loop finishes and low/high converged but didn't hit 'null',
-        // we check if the result is close enough. If not, return null.
-        // This prevents the code from returning a valid angle when the ball actually falls short.
-        Double finalY = simulateTrajectory(v0, (low+high)/2.0, spin, x);
-        if (finalY != null && Math.abs(finalY - yTarget) < 0.2) { // 20cm tolerance for "valid calculation"
-            return (low + high) / 2.0;
+        else{
+            yAtX = simulateTrajectory(v0, low, spin, x);
+            if (yAtX != null) {
+                return low;
+            }
         }
-
-        return null; // No valid angle found for this speed
+        return null; // speed doesn't work
     }
 
     private void Kick(){
