@@ -88,7 +88,7 @@ public class TestTeleOp extends LinearOpMode {
     // Air properties
     private static final double AIR_DENSITY = 1.225;   // kg/m^3
     private static final double DRAG_COEFF = 0.47;     // rough sphere
-    private static final double LIFT_COEFF = 0.7;     // Magnus C_L (tunable)
+    private static final double LIFT_COEFF = 0.20;     // Magnus C_L (tunable)
 
     // Physics
     private static final double G = 9.81;
@@ -102,7 +102,7 @@ public class TestTeleOp extends LinearOpMode {
     // Angle your limelight is mounted at (Degrees). 0 = pointing straight forward, 20 = angled up.
     public static final double LL_MOUNT_ANGLE = 15.3;
 
-    public static final double targetXOffset = 0.3048; //distance from edge of hoop to center or best place ball to land // includes distance from ll to shooting hole
+    public static final double targetXOffset = 0.635; //distance from edge of hoop to center or best place ball to land // includes distance from ll to shooting hole
 
     public static final double TargetY = .98425 - HEIGHT_DIFF_METERS;; // height of the collection zone - height of lime light
 
@@ -112,14 +112,14 @@ public class TestTeleOp extends LinearOpMode {
 
     public static double VF =0;
     public static double VA = 0;
-    public static double VRPM = 1000;
+    public static double VRPM = 0;
 
     private static final double llHeight = 260;
     private static final double flyWheelR = 96;
-    int targetID = 24;// 24 is red //20 is blue
-    //sorting order 21: g p p 22: p g p 23: p p g
+    int targetID = 0;
     double tx = 0;
     double ty = 0;
+    boolean canSeeTarget = false;
 
 
     @Override
@@ -183,6 +183,15 @@ public class TestTeleOp extends LinearOpMode {
             colorSensor.addTelemetry();
             //pidTuner.update();
             //debug
+            if(gamepad2.xWasPressed()){
+                targetOrder = ordera;
+            }
+            if (gamepad2.bWasPressed()){
+                targetOrder = orderb;
+            }
+            if(gamepad2.yWasPressed()){
+                targetOrder = orderc;
+            }
             // --------------------------- WHEELS --------------------------- //
             // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
             double axial = Math.pow(-gamepad1.left_stick_y, 3);  // Note: pushing stick forward gives negative value
@@ -350,10 +359,8 @@ public class TestTeleOp extends LinearOpMode {
             telemetry.addData("Current Order",targetOrder[1]);
             telemetry.addData("Current Order",targetOrder[2]);
             telemetry.addData("Flywheel Target RPM", VRPM);
-            telemetry.addData("Flywheel Current RPM", -Flywheel.getVelocity() * 60 / 28);
+            telemetry.addData("Flywheel Current RPM", Flywheel.getVelocity() * 60 / 28);
             telemetry.addData("Flywheel Power", Flywheel.getPower());
-            telemetry.addData("tx", tx);
-            telemetry.addData("ty", ty);
             telemetry.update();
         }
     }
@@ -459,18 +466,27 @@ public class TestTeleOp extends LinearOpMode {
     private void limeLightLoop() {
         LLResult result = limelight.getLatestResult();
         List<LLResultTypes.FiducialResult> fiducials = result.getFiducialResults();
-
+        boolean isfound = false;
         for (LLResultTypes.FiducialResult fiducial : fiducials) {
             int id = fiducial.getFiducialId(); // The ID number of the fiducial
             if (id == targetID) {
                 tx = fiducial.getTargetXDegrees(); // Where it is (left-right)
                 ty = fiducial.getTargetYDegrees(); // Where it is (up-down)
+                isfound = true;
                 break;
             }
+            else{
+                isfound = false;
         }
-        sleep(100);
+        if (isfound == false){
+            canSeeTarget = false;
         }
-
+        else{
+            canSeeTarget = true;
+        }
+    }
+        sleep(10);
+    }
     public static double speedToRPM(double launchSpeed) {
         double wheelOmega = launchSpeed / (WHEEL_RADIUS * SLIP_FACTOR);
         return (wheelOmega * 60.0) / (2.0 * Math.PI);
@@ -523,12 +539,11 @@ public class TestTeleOp extends LinearOpMode {
         return null;
     }
     public void Calculate() {
-        if(VA == Math.toRadians(40)){
-            Pitch.setPosition(1);
-        }
-        else{
-            Pitch.setPosition(0);
-        }
+        if (!canSeeTarget){
+            VRPM = 1500;
+            return;
+        };
+
         // 1. CONVERT TO RADIANS
         // Limelight gives degrees, Java Math wants radians.
         double angleToGoalDegrees = LL_MOUNT_ANGLE + ty;
@@ -546,18 +561,19 @@ public class TestTeleOp extends LinearOpMode {
         // We want to hit a specific height (TargetY) relative to the shooter
         // Note: TargetY in solveShot should be the height of the goal relative to the shooter nozzle
         //spin is radians per second
-        solveShot(TargetX, TargetY, -2);
+        solveShot(TargetX, TargetY, 10);
     }
 
     public static void solveShot(double x, double yTarget, double spin) {
         double lowSpeed = 1.0;
         double highSpeed = 40.0;
-        double bestSpeed = 0;
+        double bestSpeed = highSpeed;
         double bestAngle = 0;
-        int iterations = 0;
 
         // Binary search for the minimum SPEED required m/s
-        while (highSpeed - lowSpeed > 0.01 && iterations < 100) {
+        for (int i = 100; i < 544; i++) {
+            lowSpeed += i;
+            highSpeed += i;
             double midSpeed = (lowSpeed + highSpeed) / 2.0;
 
             // Try to find an angle that works for this speed
@@ -572,36 +588,34 @@ public class TestTeleOp extends LinearOpMode {
                 bestAngle = angleResult;
                 highSpeed = midSpeed;
             }
-            iterations++;
         }
 
         VF = bestSpeed;
         VA = bestAngle;
-        VRPM = speedToRPM(VF);
+        VRPM = speedToRPM(bestSpeed);
     }
 
     public static Double solveAngle(double v0, double spin, double x, double yTarget) {
         // Search range for launch angle (e.g., 10 to 60 degrees)
-        double low = Math.toRadians(40);
-        double high = Math.toRadians(55);
-        double yTolerance = 0.1; // 10 cm tolerance
-
+        double low = Math.toRadians(10);
+        double high = Math.toRadians(60);
         Double yAtX;
 
-        // Check high angle
-        if (x > 2.1336) {
-            yAtX = simulateTrajectory(v0, high, spin, x);
-            if (yAtX != null && Math.abs(yAtX - yTarget) < yTolerance) {
+        boolean solutionFound = false;
+        double finalAngle = 0;
+        if(TargetX > 1){
+           yAtX = simulateTrajectory(v0, high, spin, x);
+            if (yAtX != null) {
                 return high;
             }
-        } else { // Check low angle
+        }
+        else{
             yAtX = simulateTrajectory(v0, low, spin, x);
-            if (yAtX != null && Math.abs(yAtX - yTarget) < yTolerance) {
+            if (yAtX != null) {
                 return low;
             }
         }
-
-        return null; // No solution found for this speed
+        return null; // speed doesn't work
     }
 
     private void Kick(){
