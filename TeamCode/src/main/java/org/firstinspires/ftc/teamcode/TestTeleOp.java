@@ -167,7 +167,7 @@ public class TestTeleOp extends LinearOpMode {
 
         indexerPID = new PIDControllerRyan(0.005, 0.0001, 0.0001, 0, Indexer);
         pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
-        flywheelPID = new FlywheelPIDController(0.0005, 0.00001, 0.00001, 0.0001);
+        flywheelPID = new FlywheelPIDController(0.0005, 0.00001, 0.00001, 0.0001, Flywheel);
         //threads
         Thread indexerPIDThread = new Thread(this::indexerPIDLoop);
         Thread sortingThread = new Thread(this::SortingLoop);
