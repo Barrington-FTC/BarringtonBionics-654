@@ -84,20 +84,6 @@ public class TestTeleOp extends LinearOpMode {
     // Ball properties
     private static final double BALL_RADIUS = .0635; // 5" diameter = 0.127m -> radius = 0.0635m
     private static final double BALL_AREA = Math.PI * BALL_RADIUS * BALL_RADIUS;
-    private static final double BALL_MASS = 0.20; // kg — adjust for your ball
-    // Air properties
-    private static final double AIR_DENSITY = 1.225; // kg/m^3
-    private static final double DRAG_COEFF = 0.5; // User specified 0.5
-    private static final double LIFT_COEFF = 0.20; // Magnus C_L (tunable)
-
-    // Physics
-    private static final double G = 9.81;
-
-    // Simulation parameters
-    private static final double DT = 0.002; // time step (seconds)
-    private static final double MAX_TIME = 5.0;
-
-    public static final double LL_OFFSET = 15.3; // Limelight offset degrees
     public static final double HEIGHT_DIFF_METERS = 0.60; // Example: 60cm difference
     // Angle your limelight is mounted at (Degrees). 0 = pointing straight forward,
     // 20 = angled up.
@@ -116,9 +102,6 @@ public class TestTeleOp extends LinearOpMode {
     public static double VF = 0;
     public static double VA = 0;
     public static double VRPM = 0;
-
-    private static final double llHeight = 260;
-    private static final double flyWheelR = 96;
     int targetID = 0;
     double tx = 0;
     double ty = 0;
