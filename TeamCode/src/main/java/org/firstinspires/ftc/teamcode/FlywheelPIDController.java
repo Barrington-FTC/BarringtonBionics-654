@@ -36,7 +36,7 @@ public class FlywheelPIDController {
         timer.reset();
 
         // Clamp the output to be between -1 and 1 for motor power
-        return Math.max(-1.0, Math.min(1.0, output));
+        return Math.abs(output) <= 1 ? output : (output > 0 ? 1 : -1);
     }
 
     // Getters and setters for tuning
