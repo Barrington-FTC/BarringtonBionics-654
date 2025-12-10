@@ -155,16 +155,12 @@ public class TestTeleOp extends LinearOpMode {
         pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
         flywheelPID = new FlywheelPIDController(0.0005, 0.00001, 0.00001, 0.0001);
         // threads
-        Thread indexerPIDThread = new Thread(this::indexerPIDLoop);
         Thread sortingThread = new Thread(this::SortingLoop);
         Thread LimeLightThread = new Thread(this::limeLightLoop);
-        Thread flywheelPIDThread = new Thread(this::flywheelPIDLoop);
         Thread shootingThread = new Thread(this::shootingLoop);
         waitForStart();
-        indexerPIDThread.start();
         sortingThread.start();
         LimeLightThread.start();
-        flywheelPIDThread.start();
 
         while (opModeIsActive()) { // Loop
             colorSensor.addTelemetry();
@@ -257,7 +253,6 @@ public class TestTeleOp extends LinearOpMode {
             if (gamepad1.bWasPressed()) {
                 if(isShooting){
                     isShooting = false;
-                    shootingThread.stop();
                     if(Pitch.getPosition() * 60 != Math.toDegrees(TargetAngle)){
                         Pitch.setPosition(1);//60 degree shooting angle
                     }
@@ -265,8 +260,6 @@ public class TestTeleOp extends LinearOpMode {
                         Pitch.setPosition(0);//40 degree shooting angle
                     }
                 }else{
-                    isShooting = true;
-                    shootingThread.start();
                     VRPM = 1500;
                 }
             }
@@ -301,6 +294,12 @@ public class TestTeleOp extends LinearOpMode {
                     ballThreeColor = 0;
                 }
             }
+            indexerPIDLoop();
+            flywheelPIDLoop();
+            if(isShooting){
+                shootingLoop();
+            }
+
 
             // --------------------------- TELEMETRY --------------------------- //
             // Show the elapsed game time and wheel power.
@@ -329,6 +328,9 @@ public class TestTeleOp extends LinearOpMode {
             telemetry.addData("Current Order", targetOrder[1]);
             telemetry.addData("Current Order", targetOrder[2]);
             telemetry.addData("Flywheel Target RPM", VRPM);
+            telemetry.addData("ty", ty);
+            telemetry.addData("tx", tx);
+            telemetry.addData("ll status", limelight.isConnected());
             telemetry.addData("Flywheel Current RPM", Flywheel.getVelocity() * 60 / 28);
             telemetry.addData("Flywheel Power", Flywheel.getPower());
             telemetry.update();
@@ -337,22 +339,16 @@ public class TestTeleOp extends LinearOpMode {
 
     // Dedicated method for the PID loop
     private void indexerPIDLoop() {
-        while (opModeIsActive() && !isStopRequested()) { // Loop until OpMode stops
             // The PID controller calculates the necessary power to reach the TargetPosition
             double power = indexerPID.update(TargetPosition); // Use the D-pad updated TargetPosition
             Indexer.setPower(power);
             // Sleep to prevent the loop from hogging the CPU
-            sleep(20); // Sleep for 20ms (a 50Hz loop is common for PID)
-        }
     }
 
     private void flywheelPIDLoop() {
-        while (opModeIsActive() && !isStopRequested()) {
-            double currentRPM = Flywheel.getVelocity() * 60 / 28; // ticks per second to RPM
+            double currentRPM = (Flywheel.getVelocity() / 28) / 60; // ticks per second to RPM
             double power = flywheelPID.update(VRPM, currentRPM);
             Flywheel.setPower(power);
-            sleep(20);
-        }
     }
 
     private void SortingLoop() {
@@ -433,45 +429,27 @@ public class TestTeleOp extends LinearOpMode {
     // Dedicated method for the Limlight;
 
     private void limeLightLoop() {
-        while (opModeIsActive() && !isStopRequested()) {
+        while (opModeIsActive()) {
             LLResult result = limelight.getLatestResult();
-            if (result != null) {
-                List<LLResultTypes.FiducialResult> fiducials = result.getFiducialResults();
-                boolean isfound = false;
-                for (LLResultTypes.FiducialResult fiducial : fiducials) {
-                    int id = fiducial.getFiducialId();
-                    if (id == targetID) {
-                        tx = fiducial.getTargetXDegrees();
-                        ty = fiducial.getTargetYDegrees();
-                        isfound = true;
-                        break;
-                    }
-                }
-                canSeeTarget = isfound;
-            } else {
-                canSeeTarget = false;
-            }
-            sleep(50);
+            tx = result.getTx();
+            ty = result.getTy();
+
+
         }
     }
     private void shootingLoop() {
-        while (opModeIsActive() && !isStopRequested()) {
             if (tx < 5 && tx > -5) {
                 Calculate();
                 aimedCorrectly = true;
                 gamepad1.rumble(10);
-                gamepad2.rumble(10);
             } else {
                 VRPM = 1500;
                 aimedCorrectly = false;
             }
-            sleep(50);
-        }
     }
-
     public static double speedToRPM(double launchSpeed) {
-        double wheelOmega = launchSpeed / (WHEEL_RADIUS * SLIP_FACTOR);
-        return (wheelOmega * 60.0) / (2.0 * Math.PI);
+        double wheelOmega = launchSpeed / (2 * Math.PI*WHEEL_RADIUS * SLIP_FACTOR);
+        return (wheelOmega * 60.0);
     }
 
     public void Calculate() {
