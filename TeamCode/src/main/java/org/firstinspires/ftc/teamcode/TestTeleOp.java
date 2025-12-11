@@ -170,6 +170,7 @@ public class TestTeleOp extends LinearOpMode {
         Flywheel.setVelocity(1150);
 
         while (opModeIsActive()) { // Loop
+            colorSensor.addTelemetry();
             // --------------------------- WHEELS --------------------------- //
             // POV Mode uses left joystick to go forward & strafe, and right joystick to
             // rotate.
@@ -388,6 +389,7 @@ public class TestTeleOp extends LinearOpMode {
                     Indexer.getCurrentPosition());
             telemetry.addData("Indexer Target Position", "%d",
                     TargetPosition);
+            telemetry.addData("Target order", targetOrder);
             telemetry.addData("Ball one pos", ballOne);
             telemetry.addData("Ball two pos ", ballTwo);
             telemetry.addData("Ball three pos", ballThree);
@@ -408,6 +410,8 @@ public class TestTeleOp extends LinearOpMode {
             telemetry.addData("tx", tx);
             telemetry.addData("ta", ta);
             telemetry.addData("ll status", limelight.isConnected());
+            telemetry.addData("Flywheel Current RPM", Flywheel.getVelocity() * 60 / 28);
+            telemetry.addData("Flywheel Power", Flywheel.getPower());
             telemetry.update();
         }
     }
