@@ -9,6 +9,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
      * This class simplifies initialization and provides methods to check for specific colors.
      */
     public class ColorSensorV3 {
+
         private ColorSensor sensor;
         private Telemetry telemetry;
         // --- COLOR THRESHOLDS ---
