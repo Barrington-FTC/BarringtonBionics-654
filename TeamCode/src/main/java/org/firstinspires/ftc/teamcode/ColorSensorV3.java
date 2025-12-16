@@ -17,14 +17,14 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
         // Use the color sensor telemetry in your main OpMode to find the right values.
 
         // Thresholds for GREEN
-        private static final int GREEN_RED_MAX = 360;
+        private static final int GREEN_RED_MAX = 400;
         private static final int GREEN_GREEN_MIN = 1100;
-        private static final int GREEN_BLUE_MAX = 925;
+        private static final int GREEN_BLUE_MAX = 1100;
 
         // Thresholds for PURPLE
-        private static final int PURPLE_RED_MIN = 250;
-        private static final int PURPLE_GREEN_MAX = 1100;
-        private static final int PURPLE_BLUE_MIN = 500;
+        private static final int PURPLE_RED_MIN = 600;
+        private static final int PURPLE_GREEN_MAX = 900;
+        private static final int PURPLE_BLUE_MIN = 1300;
 
 
         /**

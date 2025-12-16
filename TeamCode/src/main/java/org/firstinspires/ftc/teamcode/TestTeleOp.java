@@ -77,7 +77,6 @@ public class TestTeleOp extends LinearOpMode {
     int Shootingpos = ballOne + 270;
     private PIDControllerRyan indexerPID = null;
     private PIDTuner pidTuner = null;
-    private FlywheelPIDController flywheelPID = null;
 
     // constants for Limlight
     // constants for Limlight
@@ -110,9 +109,7 @@ public class TestTeleOp extends LinearOpMode {
     double ty = 0;
 
     double ta = 0;
-    boolean canSeeTarget = false;
-    boolean isShooting = false;
-    boolean aimedCorrectly = false;
+    boolean autoIntake = false;
     @Override
     public void runOpMode() {
 
@@ -158,7 +155,6 @@ public class TestTeleOp extends LinearOpMode {
 
         indexerPID = new PIDControllerRyan(0.005, 0.0001, 0.0001, 0, Indexer);
         pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
-        flywheelPID = new FlywheelPIDController(0.0005, 0.00001, 0.00001, 0.0001);
         // threads
         Thread sortingThread = new Thread(this::SortingLoop);
         Thread LimeLightThread = new Thread(this::limeLightLoop);
@@ -219,54 +215,28 @@ public class TestTeleOp extends LinearOpMode {
                 }
                 Kick();
             }
+            if(gamepad1.yWasPressed()){
+                if(autoIntake == false){
+                    autoIntake = true;
+                }
+                else{
+                    autoIntake = false;
+                }
+
+            }
+            if(gamepad1.yWasPressed()){
+                if(autoIntake){
+                    autoIntake = false;
+                }
+                else{
+                    autoIntake = true;
+                }
+            }
             if (gamepad1.dpadUpWasPressed()) {
-                int temp = TargetPosition;
-                if (lastintake) {
-                    lastintake = false;
-                    temp += 90;
-                    ballOne += 90;
-                    ballTwo = ballOne + 180;
-                    ballThree = ballTwo + 180;
-                } else {
-                    temp += 180;
-                    ballOne += 180;
-                    ballTwo = ballOne + 180;
-                    ballThree = ballTwo + 180;
-                }
-                if (temp >= rotationCounter) {
-                    rotationCounter += 540;
-                    Intakepos += 540;
-                    Shootingpos += 540;
-                }
-                if (ballOne > Intakepos) {
-                    Intakepos += 540;
-                }
-                TargetPosition = temp;
+                shoot();
             }
             if (gamepad1.dpadRightWasPressed()) {
-                int temp = TargetPosition;
-                if (!lastintake) {
-                    lastintake = true;
-                    temp += 90;
-                    ballOne += 90;
-                    ballTwo = ballOne + 180;
-                    ballThree = ballTwo + 180;
-
-                } else {
-                    temp += 180;
-                    ballOne += 180;
-                    ballTwo = ballOne + 180;
-                    ballThree = ballTwo + 180;
-                }
-                if (ballOne > Intakepos) {
-                    Intakepos += 540;
-                }
-                if (temp >= rotationCounter) {
-                    rotationCounter += 540;
-                    Shootingpos += 540;
-                }
-                TargetPosition = temp;
-
+                intake();
             }
             if (gamepad1.bWasPressed()) {
 
@@ -277,11 +247,24 @@ public class TestTeleOp extends LinearOpMode {
                         Pitch.setPosition(0);//40 degree shooting angle
                     }
                 }
+            if(gamepad2.dpadLeftWasPressed()){
+                ballOne+=10;
+                ballTwo+=10;
+                ballThree+=10;
+                TargetPosition+=10;
+            }
+            if(gamepad2.dpadRightWasPressed()){
+                ballOne-=10;
+                ballTwo-=10;
+                ballThree-=10;
+                TargetPosition-=10;
+            }
 
             if ((Intakepos == ballOne) && !ballOneCounted) {
                 if (purple) {
                     ballOneColor = 1;
                     ballOneCounted = true;
+
                 } else if (green) {
                     ballOneColor = 2;
                     ballOneCounted = true;
@@ -310,15 +293,9 @@ public class TestTeleOp extends LinearOpMode {
                     ballThreeColor = 0;
                 }
             }
-            if (tx < 4 && tx > -4) {
+
+            if ((tx < 2 && tx > -2) && ta>0){
                 gamepad1.rumble(100);
-            }
-            //for calculations:
-            if(gamepad1.rightBumperWasPressed()){
-                VF += 50;
-            }
-            if(gamepad1.leftBumperWasPressed()){
-                VF -= 50;
             }
             if(ballOne == Shootingpos){
                 if(ballOneColor == 1) {
@@ -388,6 +365,7 @@ public class TestTeleOp extends LinearOpMode {
                     Indexer.getCurrentPosition());
             telemetry.addData("Indexer Target Position", "%d",
                     TargetPosition);
+            colorSensor.addTelemetry();
             telemetry.addData("Ball one pos", ballOne);
             telemetry.addData("Ball two pos ", ballTwo);
             telemetry.addData("Ball three pos", ballThree);
@@ -430,12 +408,61 @@ public class TestTeleOp extends LinearOpMode {
                 green = false;
 
             }
+            sleep(100);
         }}
+    private void intake(){
+        int temp = TargetPosition;
+        if (!lastintake) {
+            lastintake = true;
+            temp += 90;
+            ballOne += 90;
+            ballTwo = ballOne + 180;
+            ballThree = ballTwo + 180;
+
+        } else {
+            temp += 180;
+            ballOne += 180;
+            ballTwo = ballOne + 180;
+            ballThree = ballTwo + 180;
+        }
+        if (ballOne > Intakepos) {
+            Intakepos += 540;
+        }
+        if (temp >= rotationCounter) {
+            rotationCounter += 540;
+            Shootingpos += 540;
+        }
+        TargetPosition = temp;
+    }
+    private void shoot(){
+        int temp = TargetPosition;
+        if (lastintake) {
+            lastintake = false;
+            temp += 90;
+            ballOne += 90;
+            ballTwo = ballOne + 180;
+            ballThree = ballTwo + 180;
+        } else {
+            temp += 180;
+            ballOne += 180;
+            ballTwo = ballOne + 180;
+            ballThree = ballTwo + 180;
+        }
+        if (temp >= rotationCounter) {
+            rotationCounter += 540;
+            Intakepos += 540;
+            Shootingpos += 540;
+        }
+        if (ballOne > Intakepos) {
+            Intakepos += 540;
+        }
+        TargetPosition = temp;
+    }
+
     private void PIDLoop() {
             // The PID controller calculates the necessary power to reach the TargetPosition
             double inpower = indexerPID.update(TargetPosition); // Use the D-pad updated TargetPosition
             Indexer.setPower(inpower);
-            sleep(50);
     }
 
     private void SortingLoop() {
@@ -522,14 +549,14 @@ public class TestTeleOp extends LinearOpMode {
             ty = result.getTy();
             ta = result.getTa();
             if(ta>=0.7){
-                VF=-53.81907*Math.pow(ta,4) + 373.73888*Math.pow(ta,3) -783.69634 * Math.pow(ta,2) + 361.9612 * ta + 1460.46531;
+                VF=-53.81907*Math.pow(ta,4) + 373.73888*Math.pow(ta,3) -783.69634 * Math.pow(ta,2) + 361.9612 * ta + 1500.46531;
             }
             else if(ta<0.7 && ta>0){
                 VF = -1428.57143*ta +2021.42857;
             }
         }
         Flywheel.setVelocity(VF);
-        sleep(50);
+        sleep(100);
 
     }
 
