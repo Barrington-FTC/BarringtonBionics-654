@@ -69,6 +69,7 @@ public class newTelop extends LinearOpMode {
     int Intakepos = ballOne;
     int Shootingpos = ballOne + 270;
     private PIDControllerRyan indexerPID = null;
+    private PIDControllerRyan turretPID = null;
     private PIDTuner pidTuner = null;
 
 
@@ -82,8 +83,10 @@ public class newTelop extends LinearOpMode {
     double ty = 0;
 
     double ta = 0;
-    private final int turretmaxl = 1070;
-    private final int turretmaxr = 10;
+    private final int turretmaxl = 1087;
+    private final int turretmaxr = 0;
+
+    private final int offset = 202;
 
     private double tpr = 537.7;
 
@@ -103,6 +106,8 @@ public class newTelop extends LinearOpMode {
     private double targetangle;
     private double relTargetangle;
     private double TURRET_TICKS_PER_RADIAN = 537.7;
+
+    private int turretTargetPosition = 530;
 
     @Override
     public void runOpMode() {
@@ -134,13 +139,13 @@ public class newTelop extends LinearOpMode {
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
+        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
         Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
         turret.setDirection(DcMotor.Direction.FORWARD);
         Indexer.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
         Flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        turret.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         leftKicker.setDirection(Servo.Direction.FORWARD);
         rightKicker.setDirection(Servo.Direction.FORWARD);
         Pitch = hardwareMap.get(Servo.class, "Pitch");
@@ -159,7 +164,8 @@ public class newTelop extends LinearOpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
-        indexerPID = new PIDControllerRyan(0.005, 0.0001, 0.0001, 0, Indexer);
+        indexerPID = new PIDControllerRyan(0.005, 0.000, 0.000, 0, Indexer);
+        turretPID = new PIDControllerRyan(0.01, 0.000, 0.000, 0, turret);
         pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
         // threads
         Thread sortingThread = new Thread(this::SortingLoop);
@@ -182,15 +188,13 @@ public class newTelop extends LinearOpMode {
             hV = imu.getHeadingVelocity(UnnormalizedAngleUnit.RADIANS);
             targetangle = Math.atan2(targety - y, targetx - x);
             relTargetangle = targetangle - heading;//may need to change depending on team color
-            int turretTargetPosition = (int) (relTargetangle * TURRET_TICKS_PER_RADIAN) + 530;
+            turretTargetPosition = (int) (relTargetangle * TURRET_TICKS_PER_RADIAN) + 547;
             // Clamp the target position to within the physical limits of the turret
             if (turretTargetPosition > turretmaxl) {
                 turretTargetPosition = turretmaxl;
             } else if (turretTargetPosition < turretmaxr) {
                 turretTargetPosition = turretmaxr;
             }
-            turret.setTargetPosition(turretTargetPosition);
-            turret.setPower(1.0); // Set power for RUN_TO_POSITION to work
 
 
             // --------------------------- WHEELS --------------------------- //
@@ -330,10 +334,6 @@ public class newTelop extends LinearOpMode {
                     ballThreeColor = 0;
                 }
             }
-
-            if ((tx < 3 && tx > -3) ){
-                gamepad1.rumble(100);
-            }
             if(ballOne == Shootingpos){
                 if(ballOneColor == 1) {
                     gamepad1.setLedColor(128, 0, 128, 1000000000);
@@ -381,6 +381,7 @@ public class newTelop extends LinearOpMode {
             }
 
             PIDLoop();
+            turretPID();
             Flywheel.setVelocity(VF);
             if(ta>.7){
                 Pitch.setPosition(1);
@@ -454,6 +455,10 @@ public class newTelop extends LinearOpMode {
         }}
 
      */
+    private void turretPID(){
+        double inpower = turretPID.update(turretTargetPosition); // Use the D-pad updated TargetPosition
+        turret.setPower(inpower);
+    }
     private void intake(){
         int temp = TargetPosition;
         if (!lastintake) {
