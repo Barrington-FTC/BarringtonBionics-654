@@ -2,17 +2,17 @@ package org.firstinspires.ftc.teamcode;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
-
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.Limelight3A;
+
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
@@ -20,7 +20,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit
 
 @Config
 @TeleOp(name = "general turret teleop")
-public class newTelop extends LinearOpMode {
+public class redTeleOp extends LinearOpMode {
     // Dc Motor dec
     private DcMotor leftFrontDrive = null;
     private DcMotor leftBackDrive = null;
@@ -94,7 +94,7 @@ public class newTelop extends LinearOpMode {
     private double y = 0;
     private double heading = 0;
 
-    Pose2D currentPose = new Pose2D(DistanceUnit.INCH,48, 8, AngleUnit.DEGREES,90);//used to save position after autonomous
+    Pose2D currentPose = new Pose2D(DistanceUnit.INCH,96, 8, AngleUnit.DEGREES,90);//used to save position after autonomous
     boolean autoIntake = false;
     private double distanceToTarget;
     private double targetx = 144;
@@ -157,24 +157,17 @@ public class newTelop extends LinearOpMode {
         Intake.setDirection(DcMotorSimple.Direction.FORWARD);
         leftKicker.setPosition(1);
         rightKicker.setPosition(0);
-        // Color
-        //colorSensor = new ColorSensorV3(hardwareMap, telemetry, "colorSensor");
-        // telemetry dec
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
         indexerPID = new PIDControllerRyan(0.005, 0.000, 0.000, 0, Indexer);
-        turretPID = new PIDControllerRyan(0.01, 0.000, 0.000, 0, turret);
+        turretPID = new PIDControllerRyan(0.008, 0.000, 0.000, 0, turret);
         pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
-        // threads
-        Thread sortingThread = new Thread(this::SortingLoop);
         Thread LimeLightThread = new Thread(this::limeLightLoop);
-        //Thread colorThread = new Thread(this::color);
+        Thread KickerThread = new Thread(this::Kick);
         waitForStart();
-        sortingThread.start();
         LimeLightThread.start();
-        //colorThread.start();
 
         while (opModeIsActive()) { // Loop
             imu.update();
@@ -235,18 +228,6 @@ public class newTelop extends LinearOpMode {
             leftBackDrive.setPower(leftBackPower);
             rightBackDrive.setPower(rightBackPower);
 
-            if(gamepad2.aWasPressed()){
-                ballOne-=90;
-                ballTwo-=90;
-                ballThree-=90;
-                TargetPosition-=90;
-                sleep(100);
-                ballOne+=90;
-                ballTwo+=90;
-                ballThree+=90;
-                TargetPosition+=90;
-
-            }
 
             // Intake
             if (gamepad1.right_trigger > 0.01) {
@@ -254,45 +235,11 @@ public class newTelop extends LinearOpMode {
             } else {
                 Intake.setPower(0);
             }
-
-            if (gamepad1.a) {
-                if(ballOne == Shootingpos){
-                    ballOneCounted = false;
-                    ballOneColor = 0;
-                }
-                if(ballTwo == Shootingpos){
-                    ballTwoCounted = false;
-                    ballTwoColor = 0;
-                }
-                if(ballThree == Shootingpos){
-                    ballThreeCounted = false;
-                    ballThreeColor = 0;
-                }
-                Kick();
-            }
-            if(gamepad2.dpadUpWasPressed()){
-                targetOrder = ordera;
-            }
-            if(gamepad2.dpadDownWasPressed()){
-                targetOrder = orderc;
-            }
-            if(gamepad2.dpadRightWasPressed()){
-                targetOrder = orderb;
-            }
             if (gamepad1.dpadUpWasPressed()) {
                 shoot();
             }
             if (gamepad1.dpadRightWasPressed()) {
                 intake();
-            }
-            if (gamepad1.bWasPressed()) {
-
-                if(Pitch.getPosition() * 60 != Math.toDegrees(TargetAngle)){
-                    Pitch.setPosition(1);//60 degree shooting angle
-                }
-                else{
-                    Pitch.setPosition(0);//40 degree shooting angle
-                }
             }
             if(gamepad2.rightBumperWasPressed()){
                 ballOne+=10;
@@ -307,84 +254,7 @@ public class newTelop extends LinearOpMode {
                 TargetPosition-=10;
             }
 
-            if ((Intakepos == ballOne) && !ballOneCounted) {
-                if (purple) {
-                    ballOneColor = 1;
-                    ballOneCounted = true;
 
-                } else if (green) {
-                    ballOneColor = 2;
-                    ballOneCounted = true;
-                } else {
-                    ballOneColor = 0;
-                }
-
-            } else if ((Intakepos == ballTwo) && !ballTwoCounted) {
-                if (purple) {
-                    ballTwoColor = 1;
-                    ballTwoCounted = true;
-                } else if (green) {
-                    ballTwoColor = 2;
-                    ballTwoCounted = true;
-                } else {
-                    ballTwoColor = 0;
-                }
-            } else if ((Intakepos == ballThree) && !ballThreeCounted) {
-                if (purple) {
-                    ballThreeColor = 1;
-                    ballThreeCounted = true;
-                } else if (green) {
-                    ballThreeColor = 2;
-                    ballThreeCounted = true;
-                } else {
-                    ballThreeColor = 0;
-                }
-            }
-            if(ballOne == Shootingpos){
-                if(ballOneColor == 1) {
-                    gamepad1.setLedColor(128, 0, 128, 1000000000);
-                    gamepad2.setLedColor(128, 0, 128, 1000000000);
-                }
-                else if(ballOneColor == 2){
-                    gamepad1.setLedColor(0, 255, 0, 1000000000);
-                    gamepad2.setLedColor(0, 255, 0, 1000000000);
-
-                }
-                else{
-                    gamepad1.setLedColor(255, 0, 0, 1000000000);
-                    gamepad2.setLedColor(255, 0, 0, 1000000000);
-                }
-            }
-            if(ballTwo == Shootingpos){
-                if(ballTwoColor == 1) {
-                    gamepad1.setLedColor(128, 0, 128, 1000000000);
-                    gamepad2.setLedColor(128, 0, 128, 1000000000);
-                }
-                else if(ballTwoColor == 2){
-                    gamepad1.setLedColor(0, 255, 0, 1000000000);
-                    gamepad2.setLedColor(0, 255, 0, 1000000000);
-
-                }
-                else{
-                    gamepad1.setLedColor(255, 0, 0, 1000000000);
-                    gamepad2.setLedColor(255, 0, 0, 1000000000);
-                }
-            }
-            if(ballThree == Shootingpos){
-                if(ballThreeColor == 1) {
-                    gamepad1.setLedColor(128, 0, 128, 1000000000);
-                    gamepad2.setLedColor(128, 0, 128, 1000000000);
-                }
-                else if(ballThreeColor == 2){
-                    gamepad1.setLedColor(0, 255, 0, 1000000000);
-                    gamepad2.setLedColor(0, 255, 0, 1000000000);
-
-                }
-                else{
-                    gamepad1.setLedColor(255, 0, 0, 1000000000);
-                    gamepad2.setLedColor(255, 0, 0, 1000000000);
-                }
-            }
 
             PIDLoop();
             turretPID();
@@ -418,12 +288,6 @@ public class newTelop extends LinearOpMode {
             telemetry.addData("Ball one pos", ballOne);
             telemetry.addData("Ball two pos ", ballTwo);
             telemetry.addData("Ball three pos", ballThree);
-            telemetry.addData("Ball one color", ballOneColor);
-            telemetry.addData("Ball two color", ballTwoColor);
-            telemetry.addData("Ball three color", ballThreeColor);
-            telemetry.addData("Ball one counted", ballOneCounted);
-            telemetry.addData("Ball two counted", ballTwoCounted);
-            telemetry.addData("Ball three counted", ballThreeCounted);
             telemetry.addData("Shooting Position", Shootingpos);
             telemetry.addData("Intake Position", Intakepos);
             telemetry.addData("Current Order", targetOrder[0]);
@@ -438,29 +302,6 @@ public class newTelop extends LinearOpMode {
             telemetry.update();
         }
     }
-
-    // Dedicated method for the PID loop
-    /*private void color(){
-        while(opModeIsActive()){
-            if(colorSensor.isPurple()){
-                purple = true;
-                sleep(500);
-            }
-            else{
-                purple = false;
-            }
-            if(colorSensor.isGreen()){
-                green = true;
-                sleep(500);
-            }
-            else {
-                green = false;
-
-            }
-            sleep(100);
-        }}
-
-     */
     private void turretPID(){
         double inpower = turretPID.update(turretTargetPosition); // Use the D-pad updated TargetPosition
         turret.setPower(inpower);
@@ -519,82 +360,6 @@ public class newTelop extends LinearOpMode {
         double inpower = indexerPID.update(TargetPosition); // Use the D-pad updated TargetPosition
         Indexer.setPower(inpower);
     }
-
-    private void SortingLoop() {
-        while (opModeIsActive() && !isStopRequested()) {
-            if (gamepad1.xWasPressed()) {
-                int[] ballPosArray = { ballOne, ballTwo, ballThree };
-                int[] ballColorArray = { ballOneColor, ballTwoColor, ballThreeColor };
-                boolean arrived;
-                for (int target : targetOrder) {
-                    int i = 0;
-                    arrived = false;
-                    while (i < 3) {
-                        if (ballColorArray[i] != target) {
-                            i++;
-                            continue;
-                        }
-                        if (!arrived) {
-                            arrived = true;
-                            int diff;
-                            if (lastintake) {
-                                if (ballPosArray[i] + 90 == Shootingpos) {
-                                    diff = 90;
-                                } else if (ballPosArray[i] + 270 == Shootingpos) {
-                                    diff = 270;
-                                } else {
-                                    diff = 450;
-                                }
-                                lastintake = false;
-                            } else {
-                                if (ballPosArray[i] == Shootingpos) {
-                                    diff = 0;
-                                } else if (ballPosArray[i] + 180 == Shootingpos) {
-                                    diff = 180;
-                                } else {
-                                    diff = 360;
-                                }
-                            }
-                            int temp = TargetPosition + diff;
-                            ballOne += diff;
-                            ballTwo += diff;
-                            ballThree += diff;
-                            if (temp >= rotationCounter) {
-                                rotationCounter += 540;
-                                Shootingpos += 540;
-                            }
-                            if (ballOne > Intakepos) {
-                                Intakepos += 540;
-                            }
-                            sleep(500);
-                            TargetPosition = temp;
-                        } else {
-                            if (gamepad1.a) {
-                                Kick();
-                                if (ballColorArray[i] == ballOneColor) {
-                                    ballOneColor = 0;
-                                    ballOneCounted = false;
-                                } else if (ballColorArray[i] == ballTwoColor) {
-                                    ballTwoColor = 0;
-                                    ballTwoCounted = false;
-                                } else {
-                                    ballThreeColor = 0;
-                                    ballThreeCounted = false;
-                                }
-
-                                break;
-                            } else if (gamepad1.y) {
-                                break;
-
-                            }
-                        }
-                    }
-                }
-            }
-            sleep(90);
-        }
-
-    }
     // Dedicated method for the Limlight;
 
     private void limeLightLoop() {
@@ -618,11 +383,14 @@ public class newTelop extends LinearOpMode {
 
 
     private void Kick() {
-        leftKicker.setPosition(0);
-        rightKicker.setPosition(1);
-        sleep(500);
-        leftKicker.setPosition(1);
-        rightKicker.setPosition(0);
+        if(gamepad1.aWasPressed()) {
+            leftKicker.setPosition(0);
+            rightKicker.setPosition(1);
+            sleep(500);
+            leftKicker.setPosition(1);
+            rightKicker.setPosition(0);
+        }
+        sleep(100);
     }
 
 
