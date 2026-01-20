@@ -105,9 +105,9 @@ public class newTelop extends LinearOpMode {
     private double hV;
     private double targetangle;
     private double relTargetangle;
-    private double TURRET_TICKS_PER_RADIAN = 537.7;
+    private double TURRET_TICKS_PER_RADIAN = 537.7/(Math.PI*2);
 
-    private int turretTargetPosition = 530;
+    private int turretTargetPosition = 0;
 
     @Override
     public void runOpMode() {
@@ -187,14 +187,20 @@ public class newTelop extends LinearOpMode {
             netV = Math.sqrt(Math.pow(xV, 2) + Math.pow(yV, 2));
             hV = imu.getHeadingVelocity(UnnormalizedAngleUnit.RADIANS);
             targetangle = Math.atan2(targety - y, targetx - x);
-            relTargetangle = targetangle - heading;//may need to change depending on team color
-            turretTargetPosition = (int) (relTargetangle * TURRET_TICKS_PER_RADIAN) + 547;
+            relTargetangle = targetangle - heading;
+            relTargetangle = Math.atan2(Math.sin(relTargetangle), Math.cos(relTargetangle));
+
+// Shift so forward = pi/2
+            double turretAngle = relTargetangle + (Math.PI / 2.0);
+
+// Clamp to turret range
+            turretAngle = Math.max(0.0, Math.min(Math.PI, turretAngle));
+
+// Convert to ticks
+            turretTargetPosition = (int)(turretAngle * TURRET_TICKS_PER_RADIAN*4);
             // Clamp the target position to within the physical limits of the turret
-            if (turretTargetPosition > turretmaxl) {
-                turretTargetPosition = turretmaxl;
-            } else if (turretTargetPosition < turretmaxr) {
-                turretTargetPosition = turretmaxr;
-            }
+            turretTargetPosition = Math.max(turretmaxr,
+                    Math.min(turretmaxl, turretTargetPosition));
 
 
             // --------------------------- WHEELS --------------------------- //
