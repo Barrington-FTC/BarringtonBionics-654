@@ -154,7 +154,7 @@ public class newTelop extends LinearOpMode {
 
         // intake
         Intake = hardwareMap.get(DcMotor.class, "Intake");
-        Intake.setDirection(DcMotorSimple.Direction.FORWARD);
+        Intake.setDirection(DcMotorSimple.Direction.REVERSE);
         leftKicker.setPosition(1);
         rightKicker.setPosition(0);
         // Color
