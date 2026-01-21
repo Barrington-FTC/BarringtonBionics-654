@@ -19,7 +19,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 
 @Config
-@TeleOp(name = "general turret teleop")
+@TeleOp(name = "Blue turret teleop")
 public class blueTeleOp extends LinearOpMode {
     // Dc Motor dec
     private DcMotor leftFrontDrive = null;
