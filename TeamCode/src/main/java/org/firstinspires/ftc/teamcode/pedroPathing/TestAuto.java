@@ -13,13 +13,37 @@ import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.NanoTimer;
 import com.pedropathing.util.Timer;
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.Servo;
+
+import org.firstinspires.ftc.teamcode.PIDControllerRyan;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Autonomous(name = "TestAuto", group = "Autonomous")
 @Configurable // Panels
 public class TestAuto  extends OpMode {
+    private DcMotor leftFrontDrive = null;
+    private DcMotor leftBackDrive = null;
+    private DcMotor rightFrontDrive = null;
+    private DcMotor rightBackDrive = null;
+    private DcMotor Intake = null;
+    private DcMotor Indexer = null;
+    private DcMotorEx Flywheel = null;
+    private DcMotorEx turret = null;
+    private Servo leftKicker = null;
+    private Servo rightKicker = null;
+
+    private Servo Pitch = null;
+    Limelight3A limelight;
+    private DigitalChannel laserInput;
+    private GoBildaPinpointDriver pinpoint = null;
 
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
     public Follower follower; // Pedro Pathing follower instance
@@ -27,9 +51,28 @@ public class TestAuto  extends OpMode {
     private Paths paths; // Paths defined in the Paths class
 
     private Timer pathTimer, actionTimer,opmodeTimer;
+    int shootCounter = 0;
+    int intakeCounter = 0;
+    int BallOneShoot = 270;
+    int BallTwoShoot = 90;
+    int ballThreeShoot = 450;
+
+    int ballOneIntake = 90;
+    int ballTwoIntake = ballOneIntake + 179;
+    int ballThreeIntake = ballTwoIntake + 179;
+
+    int TargetPosition = 0;
+    private boolean lastintake = false;
+    private PIDControllerRyan indexerPID;
+    private PIDControllerRyan turretPID;
+    private double VF = 0;
+    private int turretTargetPosition = 700;
+
 
     @Override
     public void init() {
+        VF = 1290;
+
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
         pathTimer = new Timer();
         opmodeTimer = new Timer();
@@ -39,6 +82,21 @@ public class TestAuto  extends OpMode {
         follower.setStartingPose(new Pose(48, 2, Math.toRadians(90)));
 
         paths = new Paths(follower); // Build paths
+        Indexer = hardwareMap.get(DcMotor.class, "Indexer");
+        Flywheel = hardwareMap.get(DcMotorEx.class, "Flywheel");
+        turret = hardwareMap.get(DcMotorEx.class, "turret");
+        leftKicker = hardwareMap.get(Servo.class, "leftKicker");
+        Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
+        turret.setDirection(DcMotor.Direction.FORWARD);
+        Indexer.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        Flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        turret.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        Pitch = hardwareMap.get(Servo.class, "Pitch");
+        leftKicker.setDirection(Servo.Direction.FORWARD);// 0 is min angle 1 is max angle
+        indexerPID = new PIDControllerRyan(0.005, 0.000, 0.000, 0, Indexer);
+        turretPID = new PIDControllerRyan(0.008, 0.000, 0.000, 0, turret);
 
         panelsTelemetry.debug("Status", "Initialized");
         panelsTelemetry.update(telemetry);
@@ -48,6 +106,12 @@ public class TestAuto  extends OpMode {
     public void loop() {
         follower.update(); // Update Pedro Pathing
         pathState = autonomousPathUpdate(); // Update autonomous state machine
+        double inpower = indexerPID.update(TargetPosition); // Use the D-pad updated TargetPosition
+        Indexer.setPower(inpower);
+        double power = turretPID.update(639); // Use the D-pad updated TargetPosition
+        turret.setPower(power);
+        Flywheel.setVelocity(VF);
+
 
         // Log values to Panels and Driver Station
         panelsTelemetry.debug("Path State", pathState);
@@ -158,6 +222,17 @@ public class TestAuto  extends OpMode {
 
 
     public int autonomousPathUpdate() {
+        shoot();
+        sleep(200);
+        Kick();
+        sleep(100);
+        shoot();
+        sleep(200);
+        Kick();
+        sleep(100);
+        shoot();
+        sleep(100);
+        Kick();
         switch (pathState) {
             case 0:
                 follower.followPath(Paths.Path1);
@@ -238,5 +313,50 @@ public class TestAuto  extends OpMode {
     private void setPathState(int pState) {
         pathState = pState;
         pathTimer.resetTimer();
+    }
+    private void intake(){
+        intakeCounter++;
+        if(intakeCounter == 4){
+            intakeCounter=1;
+        }
+        if (!lastintake) {
+            lastintake = true;
+            intakeCounter=1;
+            TargetPosition = ballOneIntake;
+
+        } else {
+            if(intakeCounter==2){
+                TargetPosition = ballThreeIntake;
+            }
+            if(intakeCounter==3){
+                TargetPosition = ballTwoIntake;
+            }
+
+        }
+
+    }
+    private void shoot(){
+        shootCounter++;
+        if(shootCounter == 4){
+            shootCounter=1;
+        }
+        if (lastintake) {
+            lastintake = false;
+            shootCounter=1;
+            TargetPosition = BallTwoShoot;
+        } else {
+            if(shootCounter==3){
+                TargetPosition = BallOneShoot;
+            }
+            if(shootCounter==2){
+                TargetPosition = ballThreeShoot;
+            }
+        }
+    }
+    private void Kick() {
+        leftKicker.setPosition(.7);
+        sleep(800);
+        leftKicker.setPosition(1);
+
     }
 }

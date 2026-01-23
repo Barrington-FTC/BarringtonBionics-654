@@ -4,13 +4,13 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -35,14 +35,22 @@ public class redTeleOp extends LinearOpMode {
 
     private Servo Pitch = null;
     Limelight3A limelight;
-
+   private DigitalChannel laserInput;
     private GoBildaPinpointDriver pinpoint = null;
     // Constants
     // indexer
-    int rotationCounter = 360;
-    int ballOne = 0;
-    int ballTwo = ballOne + 180;
-    int ballThree = ballTwo + 180;
+
+    int shootCounter = 0;
+    int intakeCounter = 1;
+    int BallOneShoot = 268;
+    int BallTwoShoot = 89;
+    int ballThreeShoot = 445;
+
+    int ballOneIntake = 0;
+    int ballTwoIntake = ballOneIntake + 179;
+    int ballThreeIntake = ballTwoIntake + 179;
+
+    int TargetPosition = 0;
     int[] ordera = { 2, 1, 1 };
     int[] orderb = { 1, 2, 1 };
     int[] orderc = { 1, 1, 2 };
@@ -57,17 +65,12 @@ public class redTeleOp extends LinearOpMode {
 
     boolean purple = false;
     boolean green = false;
-
-    int[] ballPosArray = { ballOne, ballTwo, ballThree };
     int[] ballColorArray = { ballOneColor, ballTwoColor, ballThreeColor };
     boolean lastintake = true;
     // constants for indexer
     private ColorSensorV3 colorSensor;
 
     // declared like this so if motors are swapped I only have to find one value
-    int TargetPosition = ballOne;
-    int Intakepos = ballOne;
-    int Shootingpos = ballOne + 270;
     private PIDControllerRyan indexerPID = null;
     private PIDControllerRyan turretPID = null;
     private PIDTuner pidTuner = null;
@@ -93,6 +96,7 @@ public class redTeleOp extends LinearOpMode {
     private double x = 0;
     private double y = 0;
     private double heading = 0;
+    boolean detected;
 
     Pose2D currentPose = new Pose2D(DistanceUnit.INCH,96, 8, AngleUnit.DEGREES,90);//used to save position after autonomous
     boolean autoIntake = false;
@@ -111,6 +115,7 @@ public class redTeleOp extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+        laserInput = hardwareMap.get(DigitalChannel.class, "laserInput");
 
         // Lime Light
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
@@ -153,6 +158,8 @@ public class redTeleOp extends LinearOpMode {
         leftKicker.setDirection(Servo.Direction.FORWARD);// 0 is min angle 1 is max angle
         setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+
+        laserInput.setMode(DigitalChannel.Mode.INPUT);
         // intake
         Intake = hardwareMap.get(DcMotor.class, "Intake");
         Intake.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -171,6 +178,7 @@ public class redTeleOp extends LinearOpMode {
         //PintpointThread.start();
 
         while (opModeIsActive()) { // Loop
+            detected = laserInput.getState();
             pinpoint.update();
             x = pinpoint.getPosition().getX(DistanceUnit.INCH);
             y = pinpoint.getPosition().getY(DistanceUnit.INCH);
@@ -192,7 +200,7 @@ public class redTeleOp extends LinearOpMode {
             turretAngle = Math.max(0.0, Math.min(Math.PI, turretAngle));
 
 // Convert to ticks
-            turretTargetPosition = (int)(turretAngle * TURRET_TICKS_PER_RADIAN*4)+40;
+            turretTargetPosition = (int)(turretAngle * TURRET_TICKS_PER_RADIAN*4);
             // Clamp the target position to within the physical limits of the turret
             turretTargetPosition = Math.max(turretmaxr,
                     Math.min(turretmaxl, turretTargetPosition));
@@ -224,12 +232,6 @@ public class redTeleOp extends LinearOpMode {
                 leftBackPower /= 2;
                 rightBackPower /= 2;
             }
-            if(gamepad1.yWasPressed()){
-                Pitch.setPosition(0);
-            }
-            if(gamepad1.bWasPressed()){
-                Pitch.setPosition(1);
-            }
 
             // Send calculated power to wheels
             leftFrontDrive.setPower(leftFrontPower);
@@ -244,21 +246,28 @@ public class redTeleOp extends LinearOpMode {
                 Intake.setPower(0);
             }
             if (gamepad1.dpadUpWasPressed()) {
-                shoot();
-            }
-            if (gamepad1.dpadRightWasPressed()) {
                 intake();
             }
+
+            if (gamepad1.dpadRightWasPressed()) {
+                shoot();
+            }
+            if (gamepad1.dpadLeftWasPressed()) {
+                reverseIntake();
+            }
+            if (gamepad1.dpadDownWasPressed()) {
+                reverseShoot();
+            }
             if(gamepad2.rightBumperWasPressed()){
-                ballOne+=10;
-                ballTwo+=10;
-                ballThree+=10;
+                ballOneIntake +=10;
+                ballTwoIntake+=10;
+                ballThreeIntake +=10;
                 TargetPosition+=10;
             }
             if(gamepad2.leftBumperWasPressed()){
-                ballOne-=10;
-                ballTwo-=10;
-                ballThree-=10;
+                ballOneIntake -=10;
+                ballTwoIntake-=10;
+                ballThreeIntake -=10;
                 TargetPosition-=10;
             }
             if(distanceToTarget>125){
@@ -270,13 +279,13 @@ public class redTeleOp extends LinearOpMode {
 
 
             PIDLoop();
-            turretPID();
+            //turretPID();
             Flywheel.setVelocity(VF);
 
 
             // --------------------------- TELEMETRY --------------------------- //
             // Show the elapsed game time and wheel power.
-
+            telemetry.addData("Laser", detected);
             telemetry.addData("Front left/Right", "%4.2f, %4.2f",
                     leftFrontDrive.getPower(), rightFrontDrive.getPower());
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f",
@@ -292,11 +301,9 @@ public class redTeleOp extends LinearOpMode {
             telemetry.addData("distance to target",distanceToTarget);
             telemetry.addData("Target Turret", turretTargetPosition);
             telemetry.addData("Turret pos", turret.getCurrentPosition());
-            telemetry.addData("Ball one pos", ballOne);
-            telemetry.addData("Ball two pos ", ballTwo);
-            telemetry.addData("Ball three pos", ballThree);
-            telemetry.addData("Shooting Position", Shootingpos);
-            telemetry.addData("Intake Position", Intakepos);
+            telemetry.addData("Ball one pos", ballOneIntake);
+            telemetry.addData("Ball two pos ", ballTwoIntake);
+            telemetry.addData("Ball three pos", ballThreeIntake);
             telemetry.addData("Current Order", targetOrder[0]);
             telemetry.addData("Current Order", targetOrder[1]);
             telemetry.addData("Current Order", targetOrder[2]);
@@ -322,55 +329,93 @@ public class redTeleOp extends LinearOpMode {
         turret.setPower(inpower);
     }
     public void Calculate(double dih){
-        VF = 5.11095 * dih + 631.27328;
+        if(dih<50){
+            VF=1000;
+        }
+        else if(dih<120){
+            VF= 4.95027*dih+670.39441;
+        }
+        else{
+            VF = 5.12863*dih+700.91572;
+        }
     }
     private void intake(){
-        int temp = TargetPosition;
+        intakeCounter++;
+        if(intakeCounter == 4){
+            intakeCounter=1;
+        }
         if (!lastintake) {
             lastintake = true;
-            temp += 90;
-            ballOne += 90;
-            ballTwo = ballOne + 180;
-            ballThree = ballTwo + 180;
+            intakeCounter=1;
+            TargetPosition = ballOneIntake;
 
         } else {
-            temp += 180;
-            ballOne += 180;
-            ballTwo = ballOne + 180;
-            ballThree = ballTwo + 180;
+            if(intakeCounter==2){
+                TargetPosition = ballThreeIntake;
+            }
+            if(intakeCounter==3){
+                TargetPosition = ballTwoIntake;
+            }
+
         }
-        if (ballOne > Intakepos) {
-            Intakepos += 540;
+
+    }
+    private void reverseIntake(){
+        intakeCounter--;
+        if(intakeCounter == 0){
+            intakeCounter=3;
         }
-        if (temp >= rotationCounter) {
-            rotationCounter += 540;
-            Shootingpos += 540;
+        if (!lastintake) {
+            lastintake = true;
+            intakeCounter=1;
+            TargetPosition = ballOneIntake;
+
+        } else {
+            if(intakeCounter==2){
+                TargetPosition = ballThreeIntake;
+            }
+            if(intakeCounter==3){
+                TargetPosition = ballTwoIntake;
+            }
+
         }
-        TargetPosition = temp;
+
     }
     private void shoot(){
-        int temp = TargetPosition;
+        shootCounter++;
+        if(shootCounter == 4){
+            shootCounter=1;
+        }
         if (lastintake) {
             lastintake = false;
-            temp += 90;
-            ballOne += 90;
-            ballTwo = ballOne + 180;
-            ballThree = ballTwo + 180;
+            shootCounter=1;
+            TargetPosition = BallTwoShoot;
         } else {
-            temp += 180;
-            ballOne += 180;
-            ballTwo = ballOne + 180;
-            ballThree = ballTwo + 180;
+            if(shootCounter==3){
+                TargetPosition = BallOneShoot;
+            }
+            if(shootCounter==2){
+                TargetPosition = ballThreeShoot;
+            }
         }
-        if (temp >= rotationCounter) {
-            rotationCounter += 540;
-            Intakepos += 540;
-            Shootingpos += 540;
+    }
+    private void reverseShoot(){
+        shootCounter--;
+        if(shootCounter == 0){
+            shootCounter=3;
         }
-        if (ballOne > Intakepos) {
-            Intakepos += 540;
+        if (lastintake) {
+            lastintake = false;
+            shootCounter=1;
+            TargetPosition = BallTwoShoot;
+        } else {
+            if(shootCounter==3){
+                TargetPosition = BallOneShoot;
+            }
+            if(shootCounter==2){
+                TargetPosition = ballThreeShoot;
+            }
         }
-        TargetPosition = temp;
     }
 
     private void PIDLoop() {
@@ -385,11 +430,11 @@ public class redTeleOp extends LinearOpMode {
     private void Kick() {
         while (opModeIsActive()) {
             if (gamepad1.aWasPressed()) {
-                leftKicker.setPosition(1);
+                leftKicker.setPosition(.7);
                 sleep(800);
-                leftKicker.setPosition(0);
+                leftKicker.setPosition(1);
             }
-            sleep(50);
+            sleep(100);
         }
     }
 
