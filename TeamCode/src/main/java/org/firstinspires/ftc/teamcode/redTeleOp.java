@@ -19,7 +19,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 
 @Config
-@TeleOp(name = "Red turret teleop")
+@TeleOp(name = "Red far teleop")
 public class redTeleOp extends LinearOpMode {
     // Dc Motor dec
     private DcMotor leftFrontDrive = null;
@@ -27,7 +27,7 @@ public class redTeleOp extends LinearOpMode {
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
     private DcMotor Intake = null;
-    private DcMotor Indexer = null;
+    private DcMotorEx Indexer = null;
     private DcMotorEx Flywheel = null;
     private DcMotorEx turret = null;
     private Servo leftKicker = null;
@@ -42,15 +42,15 @@ public class redTeleOp extends LinearOpMode {
 
     int shootCounter = 0;
     int intakeCounter = 1;
-    int BallOneShoot = 268;
-    int BallTwoShoot = 89;
-    int ballThreeShoot = 445;
+    int BallOneShoot = 0;
+    int BallTwoShoot = 180;
+    int ballThreeShoot = 360;
 
-    int ballOneIntake = 0;
+    int ballOneIntake = 90;
     int ballTwoIntake = ballOneIntake + 179;
     int ballThreeIntake = ballTwoIntake + 179;
 
-    int TargetPosition = 0;
+    int TargetPosition = ballOneIntake;
     int[] ordera = { 2, 1, 1 };
     int[] orderb = { 1, 2, 1 };
     int[] orderc = { 1, 1, 2 };
@@ -86,10 +86,10 @@ public class redTeleOp extends LinearOpMode {
     double ty = 0;
 
     double ta = 0;
-    private final int turretmaxl = 1087;
-    private final int turretmaxr = -538;
+    private final int offset = 0;
+    private final int turretmaxl = 1087 + offset;
+    private final int turretmaxr = 0 + offset;
 
-    private final int offset = 202;
 
     private double tpr = 537.7;
 
@@ -136,7 +136,7 @@ public class redTeleOp extends LinearOpMode {
         leftBackDrive = hardwareMap.get(DcMotor.class, "leftBackDrive");
         rightFrontDrive = hardwareMap.get(DcMotor.class, "rightFrontDrive");
         rightBackDrive = hardwareMap.get(DcMotor.class, "rightBackDrive");
-        Indexer = hardwareMap.get(DcMotor.class, "Indexer");
+        Indexer = hardwareMap.get(DcMotorEx.class, "Indexer");
         Flywheel = hardwareMap.get(DcMotorEx.class, "Flywheel");
         turret = hardwareMap.get(DcMotorEx.class, "turret");
         leftKicker = hardwareMap.get(Servo.class, "leftKicker");
@@ -145,13 +145,11 @@ public class redTeleOp extends LinearOpMode {
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
-        Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
+        Indexer.setDirection(DcMotorSimple.Direction.REVERSE);
         turret.setDirection(DcMotor.Direction.FORWARD);
-        Indexer.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        Indexer.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
-        Flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        turret.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        Flywheel.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         leftKicker.setDirection(Servo.Direction.FORWARD);
         rightKicker.setDirection(Servo.Direction.FORWARD);
         Pitch = hardwareMap.get(Servo.class, "Pitch");
@@ -159,15 +157,19 @@ public class redTeleOp extends LinearOpMode {
         setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
 
+        turret.setPower(-.5);
+        sleep(2000);
+        turret.setPower(0);
+        turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        turret.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
         laserInput.setMode(DigitalChannel.Mode.INPUT);
-        // intake
         Intake = hardwareMap.get(DcMotor.class, "Intake");
         Intake.setDirection(DcMotorSimple.Direction.REVERSE);
         leftKicker.setPosition(1);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
         telemetry.update();
-
         indexerPID = new PIDControllerRyan(0.005, 0.000, 0.000, 0, Indexer);
         turretPID = new PIDControllerRyan(0.008, 0.000, 0.000, 0, turret);
         pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
@@ -200,7 +202,7 @@ public class redTeleOp extends LinearOpMode {
             turretAngle = Math.max(0.0, Math.min(Math.PI, turretAngle));
 
 // Convert to ticks
-            turretTargetPosition = (int)(turretAngle * TURRET_TICKS_PER_RADIAN*4);
+            turretTargetPosition = (int)(turretAngle * TURRET_TICKS_PER_RADIAN*4) + offset;
             // Clamp the target position to within the physical limits of the turret
             turretTargetPosition = Math.max(turretmaxr,
                     Math.min(turretmaxl, turretTargetPosition));
@@ -278,9 +280,9 @@ public class redTeleOp extends LinearOpMode {
             }
 
 
-            PIDLoop();
-            //turretPID();
-            Flywheel.setVelocity(VF);
+            //PIDLoop();
+            turretPID();
+            //Flywheel.setVelocity(VF);
 
 
             // --------------------------- TELEMETRY --------------------------- //
@@ -323,6 +325,11 @@ public class redTeleOp extends LinearOpMode {
             sleep(50);
         }
 
+    }
+    private void PIDLoop() {
+        // The PID controller calculates the necessary power to reach the TargetPosition
+        double inpower = indexerPID.update(Indexer.getCurrentPosition(),TargetPosition); // Use the D-pad updated TargetPosition
+        Indexer.setPower(inpower);
     }
     private void turretPID(){
         double inpower = turretPID.update(turretTargetPosition); // Use the D-pad updated TargetPosition
@@ -416,12 +423,6 @@ public class redTeleOp extends LinearOpMode {
                 TargetPosition = ballThreeShoot;
             }
         }
-    }
-
-    private void PIDLoop() {
-        // The PID controller calculates the necessary power to reach the TargetPosition
-        double inpower = indexerPID.update(TargetPosition); // Use the D-pad updated TargetPosition
-        Indexer.setPower(inpower);
     }
     // Dedicated method for the Limlight;
 
