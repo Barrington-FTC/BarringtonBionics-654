@@ -11,6 +11,7 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
+import com.pedropathing.paths.PathConstraints;
 import com.pedropathing.util.NanoTimer;
 import com.pedropathing.util.Timer;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
@@ -21,57 +22,43 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.PIDControllerRyan;
+import org.firstinspires.ftc.teamcode.mechanisms.IntakeLogic;
+import org.firstinspires.ftc.teamcode.mechanisms.flyWheelLogic;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.savedPosition;
 
 @Autonomous(name = "TestAuto", group = "Autonomous")
 @Configurable // Panels
 public class TestAuto  extends OpMode {
-    private DcMotor leftFrontDrive = null;
-    private DcMotor leftBackDrive = null;
-    private DcMotor rightFrontDrive = null;
-    private DcMotor rightBackDrive = null;
-    private DcMotor Intake = null;
-    private DcMotor Indexer = null;
-    private DcMotorEx Flywheel = null;
-    private DcMotorEx turret = null;
-    private Servo leftKicker = null;
-    private Servo rightKicker = null;
 
-    private Servo Pitch = null;
-    Limelight3A limelight;
-    private DigitalChannel laserInput;
-    private GoBildaPinpointDriver pinpoint = null;
+    private flyWheelLogic shooter = new flyWheelLogic();
 
+    private IntakeLogic intaker = new IntakeLogic();
+
+    private boolean shotsTriggered = false;
+
+
+    private PathConstraints constraints;// so you can use the is busy funtion not my bullshit
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
     public Follower follower; // Pedro Pathing follower instance
     private int pathState; // Current autonomous path state (state machine)
     private Paths paths; // Paths defined in the Paths class
 
     private Timer pathTimer, actionTimer,opmodeTimer;
-    int shootCounter = 0;
-    int intakeCounter = 0;
-    int BallOneShoot = 270;
-    int BallTwoShoot = 90;
-    int ballThreeShoot = 450;
 
-    int ballOneIntake = 90;
-    int ballTwoIntake = ballOneIntake + 179;
-    int ballThreeIntake = ballTwoIntake + 179;
-
-    int TargetPosition = 0;
-    private boolean lastintake = false;
-    private PIDControllerRyan indexerPID;
-    private PIDControllerRyan turretPID;
-    private double VF = 0;
-    private int turretTargetPosition = 700;
 
 
     @Override
     public void init() {
-        VF = 1290;
+        //adds tollerances for when a path is considered complete
+        constraints.setTranslationalConstraint(1);
+        constraints.setVelocityConstraint(.1);
+        constraints.setTimeoutConstraint(.5);
+        constraints.setHeadingConstraint(.5);
 
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
         pathTimer = new Timer();
@@ -79,24 +66,14 @@ public class TestAuto  extends OpMode {
         opmodeTimer.resetTimer();
 
         follower = Constants.createFollower(hardwareMap);
+        follower.setConstraints(constraints);
         follower.setStartingPose(new Pose(48, 2, Math.toRadians(90)));
+        //allows robot to do things in auto
+        shooter.init(hardwareMap);
+        intaker.init(hardwareMap);
 
         paths = new Paths(follower); // Build paths
-        Indexer = hardwareMap.get(DcMotor.class, "Indexer");
-        Flywheel = hardwareMap.get(DcMotorEx.class, "Flywheel");
-        turret = hardwareMap.get(DcMotorEx.class, "turret");
-        leftKicker = hardwareMap.get(Servo.class, "leftKicker");
-        Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
-        turret.setDirection(DcMotor.Direction.FORWARD);
-        Indexer.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
-        Flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        turret.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        Pitch = hardwareMap.get(Servo.class, "Pitch");
-        leftKicker.setDirection(Servo.Direction.FORWARD);// 0 is min angle 1 is max angle
-        indexerPID = new PIDControllerRyan(0.005, 0.000, 0.000, 0, Indexer);
-        turretPID = new PIDControllerRyan(0.008, 0.000, 0.000, 0, turret);
+
 
         panelsTelemetry.debug("Status", "Initialized");
         panelsTelemetry.update(telemetry);
@@ -105,13 +82,13 @@ public class TestAuto  extends OpMode {
     @Override
     public void loop() {
         follower.update(); // Update Pedro Pathing
+        shooter.update();
         pathState = autonomousPathUpdate(); // Update autonomous state machine
-        double inpower = indexerPID.update(TargetPosition); // Use the D-pad updated TargetPosition
-        Indexer.setPower(inpower);
-        double power = turretPID.update(639); // Use the D-pad updated TargetPosition
-        turret.setPower(power);
-        Flywheel.setVelocity(VF);
 
+        //makes sure teleop gets position thats stopped on
+        savedPosition.setX(follower.getPose().getX());
+        savedPosition.sety(follower.getPose().getY());
+        savedPosition.seth(follower.getPose().getHeading());
 
         // Log values to Panels and Driver Station
         panelsTelemetry.debug("Path State", pathState);
@@ -134,6 +111,7 @@ public class TestAuto  extends OpMode {
         public static PathChain Path8;
         public static PathChain Path9;
         public static PathChain Path10;
+        private static PathChain Path11;
 
         public Paths(Follower follower) {
             Path1 = follower
@@ -211,97 +189,105 @@ public class TestAuto  extends OpMode {
             Path10 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(18.000, 60.000), new Pose(48.000, 0.000))
+                            new BezierLine(new Pose(18.000, 60.000), new Pose(48.000, 8.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
                     .build();
+            Path11 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 30.000))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
+                    .build();
         }
-    }
+        }
+
+
 
 
 
 
     public int autonomousPathUpdate() {
-        shoot();
-        sleep(200);
-        Kick();
-        sleep(100);
-        shoot();
-        sleep(200);
-        Kick();
-        sleep(100);
-        shoot();
-        sleep(100);
-        Kick();
         switch (pathState) {
-            case 0:
+            case 0://preload
+                if(!shotsTriggered){
+                    shooter.fireShots(3);
+                    shotsTriggered = true;
+                }
+                else if(shotsTriggered && !shooter.isBusy()){
+                    setPathState(1);
+                }
+            case 1:// in line with row 1
                 follower.followPath(Paths.Path1);
 
-                if (follower.getPose().getX()>46 &&follower.getPose().getX()<50 && follower.getPose().getY()>34 && follower.getPose().getY()<36 && follower.getVelocity().getMagnitude()<1) {
+                if (!follower.isBusy()) {
+                    intaker.intakeBALLZ(1);
                     setPathState(2);
                 }
                 break;
-            case 1:
+            case 2://first ball pickup
                 follower.followPath(Paths.Path2);
-                if (follower.getPose().getX()>34 &&follower.getPose().getX()< 38 && follower.getPose().getY()>34 && follower.getPose().getY()<36 && follower.getVelocity().getMagnitude()<1) {
-                    setPathState(2);
-                }
-                break;
-
-            case 2:
-                follower.followPath(Paths.Path3);
-
-                if (follower.getPose().getX()>28 &&follower.getPose().getX()<32 && follower.getPose().getY()>34 && follower.getPose().getY()<36 && follower.getVelocity().getMagnitude()<1) {
+                if (!follower.isBusy()) {
                     setPathState(3);
                 }
                 break;
-            case 3:
-                follower.followPath(Paths.Path4);
 
-                if (follower.getPose().getX()>16 &&follower.getPose().getX()<20 && follower.getPose().getY()>34 && follower.getPose().getY()<36 && follower.getVelocity().getMagnitude()<1) {
+            case 3:
+                follower.followPath(Paths.Path3);
+                if (!follower.isBusy()) {
                     setPathState(4);
                 }
                 break;
             case 4:
-                follower.followPath(Paths.Path5);
-                if (follower.getPose().getX()>46 &&follower.getPose().getX()<50 && follower.getPose().getY()>0 && follower.getPose().getY()<5 && follower.getVelocity().getMagnitude()<1) {
+                follower.followPath(Paths.Path4);
+
+                if (!follower.isBusy()) {
                     setPathState(5);
                 }
                 break;
             case 5:
-                follower.followPath(Paths.Path6);
-
-                if (follower.getPose().getX()>46 &&follower.getPose().getX()<50 && follower.getPose().getY()>58 && follower.getPose().getY()<62 && follower.getVelocity().getMagnitude()<1) {
+                follower.followPath(Paths.Path5);
+                if (!follower.isBusy()) {
                     setPathState(6);
                 }
                 break;
             case 6:
-                follower.followPath(Paths.Path7);
-                if (follower.getPose().getX()>34 &&follower.getPose().getX()< 38 && follower.getPose().getY()>58 && follower.getPose().getY()<62 && follower.getVelocity().getMagnitude()<1) {
+                follower.followPath(Paths.Path6);
+
+                if (!follower.isBusy()) {
                     setPathState(7);
                 }
                 break;
-
             case 7:
-                follower.followPath(Paths.Path8);
-
-                if (follower.getPose().getX()>28 &&follower.getPose().getX()<32 && follower.getPose().getY()>58 && follower.getPose().getY()<62 && follower.getVelocity().getMagnitude()<1) {
+                follower.followPath(Paths.Path7);
+                if (!follower.isBusy()) {
                     setPathState(8);
                 }
                 break;
-            case 8:
-                follower.followPath(Paths.Path9);
 
-                if (follower.getPose().getX()>16 &&follower.getPose().getX()<20 && follower.getPose().getY()>58 && follower.getPose().getY()<62 && follower.getVelocity().getMagnitude()<1) {
+            case 8:
+                follower.followPath(Paths.Path8);
+
+                if (!follower.isBusy()) {
                     setPathState(9);
                 }
                 break;
             case 9:
-                follower.followPath(Paths.Path10);
-                if (follower.getPose().getX()>46 &&follower.getPose().getX()<50 && follower.getPose().getY()>0 && follower.getPose().getY()<5 && follower.getVelocity().getMagnitude()<1) {
+                follower.followPath(Paths.Path9);
+
+                if (!follower.isBusy()) {
                     setPathState(10);
                 }
                 break;
+            case 10:
+                follower.followPath(Paths.Path10);
+                if (!follower.isBusy()) {
+                    setPathState(11);
+                }
+                break;
+            case 11:
+                follower.followPath(Paths.Path11);
         }
 
         // Add your state machine Here
@@ -314,49 +300,5 @@ public class TestAuto  extends OpMode {
         pathState = pState;
         pathTimer.resetTimer();
     }
-    private void intake(){
-        intakeCounter++;
-        if(intakeCounter == 4){
-            intakeCounter=1;
-        }
-        if (!lastintake) {
-            lastintake = true;
-            intakeCounter=1;
-            TargetPosition = ballOneIntake;
 
-        } else {
-            if(intakeCounter==2){
-                TargetPosition = ballThreeIntake;
-            }
-            if(intakeCounter==3){
-                TargetPosition = ballTwoIntake;
-            }
-
-        }
-
-    }
-    private void shoot(){
-        shootCounter++;
-        if(shootCounter == 4){
-            shootCounter=1;
-        }
-        if (lastintake) {
-            lastintake = false;
-            shootCounter=1;
-            TargetPosition = BallTwoShoot;
-        } else {
-            if(shootCounter==3){
-                TargetPosition = BallOneShoot;
-            }
-            if(shootCounter==2){
-                TargetPosition = ballThreeShoot;
-            }
-        }
-    }
-    private void Kick() {
-        leftKicker.setPosition(.7);
-        sleep(800);
-        leftKicker.setPosition(1);
-
-    }
 }
