@@ -42,13 +42,13 @@ public class blueTeleOp extends LinearOpMode {
 
     int shootCounter = 0;
     int intakeCounter = 1;
-    int BallOneShoot = 0;
-    int BallTwoShoot = 180;
-    int ballThreeShoot = 360;
+    int BallOneShoot = 90;
+    int BallTwoShoot = 90+180;
+    int ballThreeShoot = 90+360;
 
-    int ballOneIntake = 90;
-    int ballTwoIntake = ballOneIntake + 179;
-    int ballThreeIntake = ballTwoIntake + 179;
+    int ballOneIntake = 0;
+    int ballTwoIntake = ballOneIntake + 180;
+    int ballThreeIntake = ballTwoIntake + 180;
 
     int TargetPosition = ballOneIntake;
     int[] ordera = { 2, 1, 1 };
@@ -96,7 +96,8 @@ public class blueTeleOp extends LinearOpMode {
     private double x = 0;
     private double y = 0;
     private double heading = 0;
-    boolean detected;
+    public boolean detected;
+    public boolean lastDetected;
 
     Pose2D currentPose = new Pose2D(DistanceUnit.INCH,48, 8, AngleUnit.DEGREES,90);//used to save position after autonomous
     boolean autoIntake = false;
@@ -112,6 +113,7 @@ public class blueTeleOp extends LinearOpMode {
     private double TURRET_TICKS_PER_RADIAN = 537.7/(Math.PI*2);
 
     private int turretTargetPosition = 0;
+    private double inpower;
 
     @Override
     public void runOpMode() {
@@ -145,9 +147,7 @@ public class blueTeleOp extends LinearOpMode {
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
-        Indexer.setDirection(DcMotorSimple.Direction.REVERSE);
         turret.setDirection(DcMotor.Direction.FORWARD);
-        Indexer.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
         Flywheel.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         leftKicker.setDirection(Servo.Direction.FORWARD);
@@ -155,6 +155,11 @@ public class blueTeleOp extends LinearOpMode {
         Pitch = hardwareMap.get(Servo.class, "Pitch");
         leftKicker.setDirection(Servo.Direction.FORWARD);// 0 is min angle 1 is max angle
         setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
+        Indexer.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        Indexer.setTargetPosition(TargetPosition);
+        Indexer.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
 
         turret.setPower(-.5);
@@ -173,15 +178,14 @@ public class blueTeleOp extends LinearOpMode {
         indexerPID = new PIDControllerRyan(0.005, 0.000, 0.000, 0, Indexer);
         turretPID = new PIDControllerRyan(0.008, 0.000, 0.000, 0, turret);
         pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
-        Thread KickerThread = new Thread(this::Kick);
-        Thread PintpointThread = new Thread(this:: PinpointLoop);
+        Thread KickerThread = new Thread(this::Operations);
         waitForStart();
         KickerThread.start();
-        //PintpointThread.start();
 
         while (opModeIsActive()) { // Loop
-            detected = laserInput.getState();
             pinpoint.update();
+            inpower = indexerPID.update(Indexer.getCurrentPosition(),TargetPosition); // Use the D-pad updated TargetPosition
+            Indexer.setPower(inpower);
             x = pinpoint.getPosition().getX(DistanceUnit.INCH);
             y = pinpoint.getPosition().getY(DistanceUnit.INCH);
             heading = pinpoint.getHeading(AngleUnit.RADIANS);
@@ -278,11 +282,7 @@ public class blueTeleOp extends LinearOpMode {
             else{
                 Pitch.setPosition(1);
             }
-
-
-            //PIDLoop();
-            turretPID();
-            //Flywheel.setVelocity(VF);
+            Flywheel.setVelocity(VF);
 
 
             // --------------------------- TELEMETRY --------------------------- //
@@ -292,6 +292,8 @@ public class blueTeleOp extends LinearOpMode {
                     leftFrontDrive.getPower(), rightFrontDrive.getPower());
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f",
                     leftBackDrive.getPower(), rightBackDrive.getPower());
+            telemetry.addData("Indexer power", Indexer.getPower());
+            telemetry.addData("Indexer power", inpower);
             telemetry.addData("Indexer Position", "%d",
                     Indexer.getCurrentPosition());
             telemetry.addData("Indexer Target Position", "%d",
@@ -326,15 +328,6 @@ public class blueTeleOp extends LinearOpMode {
         }
 
     }
-    private void PIDLoop() {
-        // The PID controller calculates the necessary power to reach the TargetPosition
-        double inpower = indexerPID.update(Indexer.getCurrentPosition(),TargetPosition); // Use the D-pad updated TargetPosition
-        Indexer.setPower(inpower);
-    }
-    private void turretPID(){
-        double inpower = turretPID.update(turretTargetPosition); // Use the D-pad updated TargetPosition
-        turret.setPower(inpower);
-    }
     public void Calculate(double dih){
         if(dih<50){
             VF=1000;
@@ -357,11 +350,11 @@ public class blueTeleOp extends LinearOpMode {
             TargetPosition = ballOneIntake;
 
         } else {
-            if(intakeCounter==2){
-                TargetPosition = ballThreeIntake;
-            }
             if(intakeCounter==3){
                 TargetPosition = ballTwoIntake;
+            }
+            if(intakeCounter==2){
+                TargetPosition = ballThreeIntake;
             }
 
         }
@@ -396,12 +389,12 @@ public class blueTeleOp extends LinearOpMode {
         if (lastintake) {
             lastintake = false;
             shootCounter=1;
-            TargetPosition = BallTwoShoot;
+            TargetPosition = BallOneShoot;
         } else {
-            if(shootCounter==3){
-                TargetPosition = BallOneShoot;
-            }
             if(shootCounter==2){
+                TargetPosition = BallTwoShoot;
+            }
+            if(shootCounter==3){
                 TargetPosition = ballThreeShoot;
             }
         }
@@ -428,14 +421,23 @@ public class blueTeleOp extends LinearOpMode {
 
 
 
-    private void Kick() {
+    private void Operations() {
         while (opModeIsActive()) {
+            detected = laserInput.getState();
+            if (lastDetected && !detected) {
+                sleep(500);
+                intake();
+            }
+            lastDetected = detected;
             if (gamepad1.aWasPressed()) {
                 leftKicker.setPosition(.7);
                 sleep(800);
                 leftKicker.setPosition(1);
             }
-            sleep(100);
+            double power = turretPID.update(turretTargetPosition); // Use the D-pad updated TargetPosition
+            turret.setPower(power);
+            Indexer.setTargetPosition(TargetPosition);
+            sleep(70);
         }
     }
 

@@ -137,9 +137,7 @@ public class newTelop extends LinearOpMode {
         leftKicker = hardwareMap.get(Servo.class, "leftKicker");
         rightKicker = hardwareMap.get(Servo.class, "rightKicker");
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
-        leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
+        leftBackDrive.setDirection(DcMotor.Direction.REVERSE);        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
         Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
         turret.setDirection(DcMotor.Direction.FORWARD);
         Indexer.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
