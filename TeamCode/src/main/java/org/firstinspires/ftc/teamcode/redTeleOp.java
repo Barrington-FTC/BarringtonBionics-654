@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -114,6 +115,9 @@ public class redTeleOp extends LinearOpMode {
 
     private int turretTargetPosition = 0;
     private double inpower;
+    private double kp=17;
+    private double amount=1;
+    private double kf=700;
 
     @Override
     public void runOpMode() {
@@ -175,22 +179,19 @@ public class redTeleOp extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
         telemetry.update();
-        indexerPID = new PIDControllerRyan(0.005, 0.000, 0.000, 0, Indexer);
-        turretPID = new PIDControllerRyan(0.008, 0.000, 0.000, 0, turret);
-        pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
+        PIDFCoefficients conts = new PIDFCoefficients(kf,0,0,kp);
+        Flywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER,conts);
         Thread KickerThread = new Thread(this::Operations);
         waitForStart();
         KickerThread.start();
 
         while (opModeIsActive()) { // Loop
             pinpoint.update();
-            inpower = indexerPID.update(Indexer.getCurrentPosition(),TargetPosition); // Use the D-pad updated TargetPosition
-            Indexer.setPower(inpower);
             x = pinpoint.getPosition().getX(DistanceUnit.INCH);
             y = pinpoint.getPosition().getY(DistanceUnit.INCH);
             heading = pinpoint.getHeading(AngleUnit.RADIANS);
             distanceToTarget = Math.sqrt(Math.pow(x - targetx, 2) + Math.pow(y - targety, 2));
-            Calculate(distanceToTarget);
+            //Calculate(distanceToTarget);
             xV = pinpoint.getVelX(DistanceUnit.INCH);
             yV = pinpoint.getVelY(DistanceUnit.INCH);
             netV = Math.sqrt(Math.pow(xV, 2) + Math.pow(yV, 2));
@@ -264,30 +265,49 @@ public class redTeleOp extends LinearOpMode {
             if (gamepad1.dpadDownWasPressed()) {
                 reverseShoot();
             }
-            if(gamepad2.rightBumperWasPressed()){
-                ballOneIntake +=10;
-                ballTwoIntake+=10;
-                ballThreeIntake +=10;
-                TargetPosition+=10;
-            }
-            if(gamepad2.leftBumperWasPressed()){
-                ballOneIntake -=10;
-                ballTwoIntake-=10;
-                ballThreeIntake -=10;
-                TargetPosition-=10;
-            }
             if(distanceToTarget>125){
                 Pitch.setPosition(0);
             }
             else{
                 Pitch.setPosition(1);
             }
+            if(gamepad2.dpadDownWasPressed()){
+                kp+=amount;
+            }
+            if(gamepad2.dpadUpWasPressed()){
+                kp-=amount;
+            }
+            if(gamepad2.dpadRightWasPressed()){
+                kf+=amount;
+            }
+            if(gamepad2.dpadLeftWasPressed()){
+                kf-=amount;
+            }
+            if(gamepad2.rightBumperWasPressed()){
+                VF+=amount;
+            }
+            if(gamepad2.leftBumperWasPressed()){
+                VF-=amount;
+            }
+            if(gamepad2.xWasPressed()){
+                amount/=10;
+            }
+            if(gamepad2.yWasPressed()){
+                amount*=10;
+            }
+            conts = new PIDFCoefficients(kf,0,0,kp);
+            Flywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER,conts);
             Flywheel.setVelocity(VF);
 
 
             // --------------------------- TELEMETRY --------------------------- //
             // Show the elapsed game time and wheel power.
             telemetry.addData("Laser", detected);
+            telemetry.addData("kf", kf);
+            telemetry.addData("kp", kp);
+            telemetry.addData("amount",amount);
+            telemetry.addData("vf", VF);
+            telemetry.addData("Flywheel v", Flywheel.getVelocity());
             telemetry.addData("Front left/Right", "%4.2f, %4.2f",
                     leftFrontDrive.getPower(), rightFrontDrive.getPower());
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f",
@@ -434,8 +454,6 @@ public class redTeleOp extends LinearOpMode {
                 sleep(800);
                 leftKicker.setPosition(1);
             }
-            double power = turretPID.update(turretTargetPosition); // Use the D-pad updated TargetPosition
-            turret.setPower(power);
             Indexer.setTargetPosition(TargetPosition);
             sleep(70);
         }

@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -115,6 +116,12 @@ public class blueTeleOp extends LinearOpMode {
     private int turretTargetPosition = 0;
     private double inpower;
 
+    private double kp = 0;
+
+    private double kf = 0;
+
+    private double amount = 1;
+
     @Override
     public void runOpMode() {
         laserInput = hardwareMap.get(DigitalChannel.class, "laserInput");
@@ -176,10 +183,15 @@ public class blueTeleOp extends LinearOpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
         indexerPID = new PIDControllerRyan(0.005, 0.000, 0.000, 0, Indexer);
-        turretPID = new PIDControllerRyan(0.008, 0.000, 0.000, 0, turret);
         pidTuner = new PIDTuner(indexerPID, gamepad2, telemetry);
+        PIDFCoefficients conts = new PIDFCoefficients(kf,0,0,kp);
+        Flywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER,conts);
         Thread KickerThread = new Thread(this::Operations);
+
+
         waitForStart();
+
+
         KickerThread.start();
 
         while (opModeIsActive()) { // Loop
@@ -190,7 +202,7 @@ public class blueTeleOp extends LinearOpMode {
             y = pinpoint.getPosition().getY(DistanceUnit.INCH);
             heading = pinpoint.getHeading(AngleUnit.RADIANS);
             distanceToTarget = Math.sqrt(Math.pow(x - targetx, 2) + Math.pow(y - targety, 2));
-            Calculate(distanceToTarget);
+            //Calculate(distanceToTarget);
             xV = pinpoint.getVelX(DistanceUnit.INCH);
             yV = pinpoint.getVelY(DistanceUnit.INCH);
             netV = Math.sqrt(Math.pow(xV, 2) + Math.pow(yV, 2));
@@ -282,6 +294,26 @@ public class blueTeleOp extends LinearOpMode {
             else{
                 Pitch.setPosition(1);
             }
+            if(gamepad2.dpadDownWasPressed()){
+                kp+=amount;
+            }
+            if(gamepad2.dpadUpWasPressed()){
+                kp-=amount;
+            }
+            if(gamepad2.dpadRightWasPressed()){
+                kf+=amount;
+            }
+            if(gamepad2.dpadLeftWasPressed()){
+                kf-=amount;
+            }
+            if(gamepad2.xWasPressed()){
+                amount/=10;
+            }
+            if(gamepad2.yWasPressed()){
+                amount*=10;
+            }
+            conts = new PIDFCoefficients(kf,0,0,kp);
+            Flywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER,conts);
             Flywheel.setVelocity(VF);
 
 
