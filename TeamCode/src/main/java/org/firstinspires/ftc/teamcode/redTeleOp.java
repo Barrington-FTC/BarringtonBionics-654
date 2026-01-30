@@ -78,7 +78,7 @@ public class redTeleOp extends LinearOpMode {
     Pose2D currentPose = new Pose2D(DistanceUnit.INCH,96, 8, AngleUnit.DEGREES,90);//used to save position after autonomous
     boolean autoIntake = false;
     private double distanceToTarget;
-    private double targetx = 0;
+    private double targetx = 144;
     private double targety = 144;
     private double xV;
     private double yV;

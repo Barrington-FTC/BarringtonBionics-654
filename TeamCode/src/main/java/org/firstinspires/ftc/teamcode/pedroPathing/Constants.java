@@ -16,9 +16,9 @@ public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(12.701)
             //-40.40765975427842
-            .forwardZeroPowerAcceleration(-200)
+            .forwardZeroPowerAcceleration(-400)
 
-            .lateralZeroPowerAcceleration(-150);
+            .lateralZeroPowerAcceleration(-300);
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1.1)

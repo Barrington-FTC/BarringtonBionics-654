@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.mechanisms;
 
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
@@ -36,6 +37,7 @@ public class IntakeLogic {
         // removed conflicting pid setup
         // tolerances for speed
         Indexer.setTargetPositionTolerance(1);
+        Intake.setDirection(DcMotorSimple.Direction.REVERSE);
         // set case
         IntakeState = IntakeState.IDLE;
     }
@@ -53,17 +55,15 @@ public class IntakeLogic {
                 }
                 break;
             case INTAKE:
-                if (!Indexer.isBusy()) {
-                    Intake.setPower(1);
+                Intake.setPower(1);
                     if (laserInput.getState()) {
                         INTAKE_TARGET += 180;
                         stateTimer.reset();
                         IntakeState = IntakeState.INDEX;
-                    }
                 }
                 break;
             case INDEX:
-                if (stateTimer.seconds() >= 1) {
+                if (stateTimer.seconds() >= .5){
                     Indexer.setTargetPosition(INTAKE_TARGET);
                     intakeCount--;
                     stateTimer.reset();
@@ -74,6 +74,12 @@ public class IntakeLogic {
     }
 
     public void intakeBALLZ(int ballz) {
+        intakeCount += ballz;
+    }
+    public int getnumballz(){
+        return intakeCount;
+    }
+    public void setNumBallz(int ballz){
         intakeCount = ballz;
     }
 

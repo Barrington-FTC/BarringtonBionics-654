@@ -48,7 +48,6 @@ public class flyWheelLogic {
     private int targetposition = 0;
 
     public void init(HardwareMap hwMap, DcMotorEx index) {
-        pitch = hwMap.get(Servo.class, "Pitch");
         Turret = hwMap.get(DcMotorEx.class, "turret");
         Indexer = index;
         leftKicker = hwMap.get(Servo.class, "leftKicker");
@@ -60,13 +59,12 @@ public class flyWheelLogic {
         leftKicker.setDirection(Servo.Direction.FORWARD);
 
         Turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        Turret.setTargetPosition(550);
+        Turret.setTargetPosition(610);
         Turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         Turret.setPower(1);
 
         FlywheelState = FlywheelState.IDLE;
-        Flywheel.setVelocity(1300);
-        pitch.setPosition(1);
+        Flywheel.setVelocity(1390);
         leftKicker.setPosition(1);
     }
 
@@ -74,8 +72,7 @@ public class flyWheelLogic {
         switch (FlywheelState) {
             case IDLE:
                 if (shotsRemaning > 0) {
-                    pitch.setPosition(GATE_OPEN_ANGLE);
-                    Flywheel.setVelocity(TARGET_FLYWHEEL_VELOCITY);
+                    Flywheel.setVelocity(1390);
                     if (shotsRemaning == 1) {
                         targetposition = shootOne;
                     }
@@ -100,15 +97,14 @@ public class flyWheelLogic {
                     targetposition = shootThree;
                 }
                 Indexer.setTargetPosition(targetposition);
-                if (Indexer.getCurrentPosition() < targetposition + 1
-                        && Indexer.getCurrentPosition() > targetposition - 1) {
+                if (!Indexer.isBusy()) {
                     stateTimer.reset();
                     FlywheelState = FlywheelState.SHOOT;
                 }
                 break;
             case SHOOT:
                 leftKicker.setPosition(.7);
-                if (stateTimer.milliseconds() > 300) {
+                if (stateTimer.seconds()>.9) {
                     shotsRemaning--;
                     stateTimer.reset();
                     FlywheelState = FlywheelState.RESET_GATE;

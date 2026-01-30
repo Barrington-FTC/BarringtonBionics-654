@@ -1,40 +1,30 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
-import static android.os.SystemClock.sleep;
-
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.paths.PathConstraints;
-import com.pedropathing.util.NanoTimer;
 import com.pedropathing.util.Timer;
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
-import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.teamcode.PIDControllerRyan;
 import org.firstinspires.ftc.teamcode.mechanisms.IntakeLogic;
 import org.firstinspires.ftc.teamcode.mechanisms.flyWheelLogic;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.savedPosition;
 
-@Autonomous(name = "TestAuto", group = "Autonomous")
+@Autonomous(name = "blue far auto", group = "Autonomous")
 @Configurable // Panels
-public class TestAuto extends OpMode {
+public class redFarAuto extends OpMode {
 
     private DcMotorEx Indexer = null;
 
@@ -57,6 +47,7 @@ public class TestAuto extends OpMode {
     private Paths paths; // Paths defined in the Paths class
 
     private Timer pathTimer, actionTimer, opmodeTimer;
+    private DigitalChannel laserInput;
 
     @Override
     public void init() {
@@ -73,7 +64,7 @@ public class TestAuto extends OpMode {
         constraints.setTimeoutConstraint(.5);
         constraints.setHeadingConstraint(.5);
         follower.setConstraints(constraints);
-        follower.setStartingPose(new Pose(48, 8, Math.toRadians(90)));
+        follower.setStartingPose(new Pose(48, 0, Math.toRadians(90)));
         // indexer
         Indexer = hardwareMap.get(DcMotorEx.class, "Indexer");
         Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
@@ -99,15 +90,15 @@ public class TestAuto extends OpMode {
         Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
         PIDFCoefficients flyhweelconts = new PIDFCoefficients(700, 0, 0, 17);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER, flyhweelconts);
-        Flywheel.setVelocity(1300);
         // servos
-        pitch.setPosition(1);
+        pitch.setPosition(0);
         leftKicker.setPosition(1);
         // turret setup
         Turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        Turret.setTargetPosition(550);
+        Turret.setTargetPosition(610);
         Turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        Indexer.setPositionPIDFCoefficients(20);
+        Indexer.setPositionPIDFCoefficients(13);
+        Indexer.setTargetPositionTolerance(1);
         Turret.setPower(1);
 
         panelsTelemetry.debug("Status", "Initialized");
@@ -155,16 +146,10 @@ public class TestAuto extends OpMode {
         private static PathChain Path11;
 
         public Paths(Follower follower) {
-            Path0 = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 8.000)))
-                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
-                    .build();
             Path1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 35.000)))
+                            new BezierLine(new Pose(48.000, 0.000), new Pose(48.000, 35.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))
                     .build();
 
@@ -247,78 +232,98 @@ public class TestAuto extends OpMode {
                     shotsTriggered = true;
                 }
                 if (!shooter.isBusy() && shooter.getShotsRemaning() == 0) {
+                    shotsTriggered = false;
                     setPathState(1);
                 }
                 break;
             case 1:// in line with row 1
+                intaker.intakeBALLZ(1);
                 follower.followPath(Paths.Path1);
-
-                if (!follower.isBusy()) {
-                    intaker.intakeBALLZ(1);
+                if (followerArivved()) {
                     setPathState(2);
                 }
                 break;
-            case 2:// first ball pickup
+            case 2:// r1 b1
                 follower.followPath(Paths.Path2);
-                if (!follower.isBusy()) {
+                intaker.intakeBALLZ(1);
+                if (followerArivved()) {
                     setPathState(3);
                 }
                 break;
 
-            case 3:
+            case 3://r1 b2
                 follower.followPath(Paths.Path3);
-                if (!follower.isBusy()) {
+                intaker.intakeBALLZ(1);
+                if (followerArivved()) {
                     setPathState(4);
                 }
                 break;
-            case 4:
+            case 4://r1 b3
                 follower.followPath(Paths.Path4);
-
-                if (!follower.isBusy()) {
+                if (followerArivved()) {
                     setPathState(5);
                 }
                 break;
-            case 5:
+            case 5://back to shoot pos
                 follower.followPath(Paths.Path5);
-                if (!follower.isBusy()) {
+                if (followerArivved()) {
                     setPathState(6);
                 }
                 break;
-            case 6:
-                follower.followPath(Paths.Path6);
-
-                if (!follower.isBusy()) {
+            case 6://shoot 3 balls
+                if (!shotsTriggered) {
+                    shooter.fireShots(3);
+                    shotsTriggered = true;
+                }
+                if (!shooter.isBusy() && shooter.getShotsRemaning() == 0) {
+                    shotsTriggered = false;
                     setPathState(7);
                 }
                 break;
-            case 7:
-                follower.followPath(Paths.Path7);
-                if (!follower.isBusy()) {
+            case 7://in line with r2
+                follower.followPath(Paths.Path6);
+
+                if (followerArivved()) {
                     setPathState(8);
                 }
                 break;
-
-            case 8:
-                follower.followPath(Paths.Path8);
-
-                if (!follower.isBusy()) {
+            case 8://r2 b1
+                follower.followPath(Paths.Path7);
+                if (followerArivved()) {
                     setPathState(9);
                 }
                 break;
-            case 9:
-                follower.followPath(Paths.Path9);
 
-                if (!follower.isBusy()) {
+            case 9://r2 b2
+                follower.followPath(Paths.Path8);
+
+                if (followerArivved()) {
                     setPathState(10);
                 }
                 break;
-            case 10:
-                follower.followPath(Paths.Path10);
-                if (!follower.isBusy()) {
+            case 10://r2 b3
+                follower.followPath(Paths.Path9);
+
+                if (followerArivved()) {
                     setPathState(11);
                 }
                 break;
-            case 11:
+            case 11:// back to shoot pos
+                follower.followPath(Paths.Path10);
+                if (followerArivved()) {
+                    setPathState(12);
+                }
+                break;
+            case 12://fire 3 balls
+                if (!shotsTriggered) {
+                    shooter.fireShots(3);
+                    shotsTriggered = true;
+                }
+                if (!shooter.isBusy() && shooter.getShotsRemaning() == 0) {
+                    shotsTriggered = false;
+                    setPathState(7);
+                }
+            case 13:// ranking points
                 follower.followPath(Paths.Path11);
         }
 
@@ -331,6 +336,16 @@ public class TestAuto extends OpMode {
     private void setPathState(int pState) {
         pathState = pState;
         pathTimer.resetTimer();
+    }
+
+    private boolean followerArivved(){
+        if((follower.getPose().getX()>follower.getCurrentPath().endPose().getX()-2 && follower.getPose().getX()<follower.getCurrentPath().endPose().getX()+2)&&(follower.getPose().getY()>follower.getCurrentPath().endPose().getY()-2 && follower.getPose().getY()<follower.getCurrentPath().endPose().getY()+2)&&(follower.getVelocity().getMagnitude()<1)){
+            return true;
+        }
+        else{
+            return false;
+        }
+
     }
 
 }
