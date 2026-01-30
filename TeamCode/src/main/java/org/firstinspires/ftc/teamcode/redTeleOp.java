@@ -161,16 +161,22 @@ public class redTeleOp extends LinearOpMode {
         setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
-        Indexer.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        Indexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         Indexer.setTargetPosition(TargetPosition);
         Indexer.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+        Indexer.setPower(1);
+        Indexer.setPositionPIDFCoefficients(10);
 
 
+        turret.setDirection(DcMotor.Direction.FORWARD);
         turret.setPower(-.5);
         sleep(2000);
         turret.setPower(0);
         turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        turret.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        turret.setTargetPosition(0);
+        turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        turret.setPositionPIDFCoefficients(10);
+        turret.setPower(1);
 
         laserInput.setMode(DigitalChannel.Mode.INPUT);
         Intake = hardwareMap.get(DcMotor.class, "Intake");
@@ -270,30 +276,6 @@ public class redTeleOp extends LinearOpMode {
             }
             else{
                 Pitch.setPosition(1);
-            }
-            if(gamepad2.dpadDownWasPressed()){
-                kp+=amount;
-            }
-            if(gamepad2.dpadUpWasPressed()){
-                kp-=amount;
-            }
-            if(gamepad2.dpadRightWasPressed()){
-                kf+=amount;
-            }
-            if(gamepad2.dpadLeftWasPressed()){
-                kf-=amount;
-            }
-            if(gamepad2.rightBumperWasPressed()){
-                VF+=amount;
-            }
-            if(gamepad2.leftBumperWasPressed()){
-                VF-=amount;
-            }
-            if(gamepad2.xWasPressed()){
-                amount/=10;
-            }
-            if(gamepad2.yWasPressed()){
-                amount*=10;
             }
             conts = new PIDFCoefficients(kf,0,0,kp);
             Flywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER,conts);
@@ -455,6 +437,7 @@ public class redTeleOp extends LinearOpMode {
                 leftKicker.setPosition(1);
             }
             Indexer.setTargetPosition(TargetPosition);
+            turret.setTargetPosition(turretTargetPosition);
             sleep(70);
         }
     }

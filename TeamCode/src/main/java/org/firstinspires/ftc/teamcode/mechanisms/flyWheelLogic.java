@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.mechanisms;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
@@ -21,7 +22,7 @@ public class flyWheelLogic {
 
     private ElapsedTime stateTimer = new ElapsedTime();
 
-    private enum FlywheelState{
+    public enum FlywheelState{
         IDLE,
         SPIN_UP,
         SHOOT,
@@ -47,23 +48,32 @@ public class flyWheelLogic {
     private int shootOne = 90;
     private int shootTwo = 270;
     private int shootThree = 450;
+    private int targetposition = 0;
 
     public void init(HardwareMap hwMap){
-        pitch = hwMap.get(Servo.class, "pitch");
+        pitch = hwMap.get(Servo.class, "Pitch");
         Turret = hwMap.get(DcMotorEx.class, "turret");
         Indexer = hwMap.get(DcMotorEx.class, "Indexer");
         leftKicker = hwMap.get(Servo.class, "leftKicker");
-        Flywheel = hwMap.get(DcMotorEx.class, "flyWheel");
-        PIDFCoefficients flyhweelconts = new PIDFCoefficients(0,0,0,0);
-        PIDFCoefficients turretconts = new PIDFCoefficients(0.008,0,0,0);
-        PIDFCoefficients indexerconts = new PIDFCoefficients(0.005,0,0,0);
+        Flywheel = hwMap.get(DcMotorEx.class, "Flywheel");
+        Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        PIDFCoefficients flyhweelconts = new PIDFCoefficients(700,0,0,17);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
-        Turret.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,turretconts);
-        Indexer.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,indexerconts);
-        Indexer.setTargetPositionTolerance(1);
+        Turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        Turret.setTargetPosition(600);
+        Turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        Turret.setPower(1);
+
+        Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
+        Indexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        Indexer.setTargetPosition(0);
+        Indexer.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+        Indexer.setPower(1);
+        Indexer.setPositionPIDFCoefficients(10);
 
         FlywheelState = FlywheelState.IDLE;
-        flywheelVelocity = MIN_FLYWHEEL_RPM;
+        flywheelVelocity = 1300;
+        Flywheel.setVelocity(flywheelVelocity);
         pitch.setPosition(GATE_CLOSE_ANGLE);
         leftKicker.setPosition(1);
     }
@@ -75,26 +85,26 @@ public class flyWheelLogic {
                     pitch.setPosition(GATE_OPEN_ANGLE);
                     Flywheel.setVelocity(TARGET_FLYWHEEL_VELOCITY);
                     if(shotsRemaning == 3){
-                        Turret.setTargetPosition(shootThree);
+                        targetposition = shootThree;
                     } else if (shotsRemaning == 2) {
-                        Turret.setTargetPosition(shootTwo);
+                        //targetposition = shootTwo;
                     }
                     else{
-                        Indexer.setTargetPosition(shootOne);
+                        //targetposition = shootOne;
                     }
                     stateTimer.reset();
                     FlywheelState = FlywheelState.SPIN_UP;
                 }
                 break;
             case SPIN_UP:
-                if((flywheelVelocity > MIN_FLYWHEEL_RPM || stateTimer.seconds() > FLYWHEEL_MAX_SPINUP_TIME) && Indexer.isBusy()){
+                if(!Indexer.isBusy()){
                     pitch.setPosition(GATE_OPEN_ANGLE);
                     stateTimer.reset();
                     FlywheelState = FlywheelState.SHOOT;
                 }
                 break;
             case SHOOT:
-                if(stateTimer.seconds() > GATE_OPEN_TIME){
+                if(stateTimer.milliseconds() > GATE_OPEN_TIME){
                     leftKicker.setPosition(.7);
                     shotsRemaning--;
                     stateTimer.reset();
@@ -112,7 +122,6 @@ public class flyWheelLogic {
                     }
                 }
                 else{
-                    Flywheel.setVelocity(MIN_FLYWHEEL_RPM);
                     stateTimer.reset();
                     FlywheelState = FlywheelState.IDLE;
                 }
@@ -120,6 +129,10 @@ public class flyWheelLogic {
 
         }
 }
+    public void pids(){
+        Indexer.setTargetPosition(0);
+        Flywheel.setVelocity(flywheelVelocity);
+    }
     public void fireShots(int numShots){
         if(FlywheelState == FlywheelState.IDLE){
             shotsRemaning = numShots;
@@ -128,6 +141,23 @@ public class flyWheelLogic {
 
     public boolean isBusy(){
         return FlywheelState != FlywheelState.IDLE;
+    }
+
+    public int getShotsRemaning(){
+        return shotsRemaning;
+    }
+
+    public FlywheelState getFlywheelState(){
+        return FlywheelState;
+    }
+    public int getIndexerPos(){
+        return Indexer.getCurrentPosition();
+    }
+    public int getIndexerTargetPos(){
+        return  Indexer.getTargetPosition();
+    }
+    public double getIndexerpower(){
+        return  Indexer.getPower();
     }
 
 

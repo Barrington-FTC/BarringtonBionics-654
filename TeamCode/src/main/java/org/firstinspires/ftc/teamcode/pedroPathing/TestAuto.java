@@ -23,6 +23,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.PIDControllerRyan;
@@ -35,18 +36,28 @@ import org.firstinspires.ftc.teamcode.savedPosition;
 @Configurable // Panels
 public class TestAuto  extends OpMode {
 
+    private DcMotorEx Indexer = null;
+
+    private DcMotorEx Flywheel = null;
+    private DcMotorEx Turret = null;
+    private Servo pitch = null;
+    private Servo leftKicker = null;
+
+
     private flyWheelLogic shooter = new flyWheelLogic();
 
     private IntakeLogic intaker = new IntakeLogic();
 
     private boolean shotsTriggered = false;
 
-
-    private PathConstraints constraints;// so you can use the is busy funtion not my bullshit
+    private PathConstraints constraints = new PathConstraints(1,.1,1,.5,.5,.3,1,.7);// so you can use the is busy funtion not my bullshit
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
     public Follower follower; // Pedro Pathing follower instance
-    private int pathState; // Current autonomous path state (state machine)
+    private int pathState = 0; // Current autonomous path state (state machine)
+
+    private int targetPostion = 0;
     private Paths paths; // Paths defined in the Paths class
+
 
     private Timer pathTimer, actionTimer,opmodeTimer;
 
@@ -54,11 +65,6 @@ public class TestAuto  extends OpMode {
 
     @Override
     public void init() {
-        //adds tollerances for when a path is considered complete
-        constraints.setTranslationalConstraint(1);
-        constraints.setVelocityConstraint(.1);
-        constraints.setTimeoutConstraint(.5);
-        constraints.setHeadingConstraint(.5);
 
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
         pathTimer = new Timer();
@@ -66,13 +72,46 @@ public class TestAuto  extends OpMode {
         opmodeTimer.resetTimer();
 
         follower = Constants.createFollower(hardwareMap);
+        //adds tollerances for when a path is considered complete
+        constraints.setTranslationalConstraint(1);
+        constraints.setVelocityConstraint(.1);
+        constraints.setTimeoutConstraint(.5);
+        constraints.setHeadingConstraint(.5);
         follower.setConstraints(constraints);
-        follower.setStartingPose(new Pose(48, 2, Math.toRadians(90)));
+        follower.setStartingPose(new Pose(48, 8, Math.toRadians(90)));
         //allows robot to do things in auto
         shooter.init(hardwareMap);
         intaker.init(hardwareMap);
 
         paths = new Paths(follower); // Build paths
+        pitch = hardwareMap.get(Servo.class, "Pitch");
+        Turret = hardwareMap.get(DcMotorEx.class, "turret");
+        Indexer = hardwareMap.get(DcMotorEx.class, "Indexer");
+        leftKicker = hardwareMap.get(Servo.class, "leftKicker");
+        Flywheel = hardwareMap.get(DcMotorEx.class, "Flywheel");
+
+        //flywheel
+        Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        PIDFCoefficients flyhweelconts = new PIDFCoefficients(700,0,0,17);
+        Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
+        Flywheel.setVelocity(1250);
+        //servos
+        pitch.setPosition(1);
+        leftKicker.setPosition(1);
+        //turret setup
+        Turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        Turret.setTargetPosition(600);
+        Turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        Indexer.setPositionPIDFCoefficients(10);
+        Turret.setPower(1);
+        //indexer
+        Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
+        Indexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        Indexer.setTargetPosition(0);
+        Indexer.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+        Indexer.setPower(1);
+        Indexer.setPositionPIDFCoefficients(10);
+        Indexer.setTargetPositionTolerance(1);
 
 
         panelsTelemetry.debug("Status", "Initialized");
@@ -82,8 +121,9 @@ public class TestAuto  extends OpMode {
     @Override
     public void loop() {
         follower.update(); // Update Pedro Pathing
-        shooter.update();
-        pathState = autonomousPathUpdate(); // Update autonomous state machine
+        pathState = autonomousPathUpdate();// Update autonomous state machine
+        Indexer.setTargetPosition(targetPostion);
+        Flywheel.setVelocity(1250);
 
         //makes sure teleop gets position thats stopped on
         savedPosition.setX(follower.getPose().getX());
@@ -95,11 +135,16 @@ public class TestAuto  extends OpMode {
         panelsTelemetry.debug("X", follower.getPose().getX());
         panelsTelemetry.debug("Y", follower.getPose().getY());
         panelsTelemetry.debug("Heading", follower.getPose().getHeading());
+        panelsTelemetry.debug("Shooter State", shooter.getFlywheelState().toString());
+        panelsTelemetry.debug("current pos", shooter.getIndexerPos());
+        panelsTelemetry.debug("target pos", shooter.getIndexerTargetPos());
+        panelsTelemetry.debug("Power", shooter.getIndexerpower());
         panelsTelemetry.update(telemetry);
     }
 
 
     public static class Paths {
+        public static PathChain Path0;
 
         public static PathChain Path1;
         public static PathChain Path2;
@@ -114,6 +159,13 @@ public class TestAuto  extends OpMode {
         private static PathChain Path11;
 
         public Paths(Follower follower) {
+            Path0 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 8.000))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
+                    .build();
             Path1 = follower
                     .pathBuilder()
                     .addPath(
@@ -211,18 +263,42 @@ public class TestAuto  extends OpMode {
     public int autonomousPathUpdate() {
         switch (pathState) {
             case 0://preload
-                if(!shotsTriggered){
-                    shooter.fireShots(3);
-                    shotsTriggered = true;
+                if(pathTimer.getElapsedTimeSeconds()<=7){
+                    if(pathTimer.getElapsedTimeSeconds()<2)
+                        targetPostion=90;
+                    if(!Indexer.isBusy()){
+                        leftKicker.setPosition(.7);
+                        if(leftKicker.getPosition() == .7){
+                            leftKicker.setPosition(1);
+                        }
+                    }
+                    if(pathTimer.getElapsedTimeSeconds()>2&& pathTimer.getElapsedTimeSeconds()<4) {
+                        targetPostion = 270;
+                        if (!Indexer.isBusy()) {
+                            leftKicker.setPosition(.7);
+                            if (leftKicker.getPosition() == .7) {
+                                leftKicker.setPosition(1);
+                            }
+                        }
+                    }
+                    if(pathTimer.getElapsedTimeSeconds()>4&& pathTimer.getElapsedTimeSeconds()<7) {
+                        targetPostion = 450;
+                        if (!Indexer.isBusy()) {
+                            leftKicker.setPosition(.7);
+                            if (leftKicker.getPosition() == .7) {
+                                leftKicker.setPosition(1);
+                            }
+                        }
+                    }
+
                 }
-                else if(shotsTriggered && !shooter.isBusy()){
+                else{
                     setPathState(1);
                 }
+                break;
             case 1:// in line with row 1
                 follower.followPath(Paths.Path1);
-
                 if (!follower.isBusy()) {
-                    intaker.intakeBALLZ(1);
                     setPathState(2);
                 }
                 break;
