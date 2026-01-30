@@ -78,9 +78,11 @@ public class flyWheelLogic {
                     Flywheel.setVelocity(TARGET_FLYWHEEL_VELOCITY);
                     if (shotsRemaning == 1) {
                         targetposition = shootOne;
-                    } if (shotsRemaning == 2) {
+                    }
+                    if (shotsRemaning == 2) {
                         targetposition = shootTwo;
-                    } if(shotsRemaning == 3){
+                    }
+                    if (shotsRemaning == 3) {
                         targetposition = shootThree;
                     }
                     stateTimer.reset();
@@ -98,14 +100,15 @@ public class flyWheelLogic {
                     targetposition = shootThree;
                 }
                 Indexer.setTargetPosition(targetposition);
-                if (Indexer.getCurrentPosition() < targetposition + 1 && Indexer.getCurrentPosition() > targetposition - 1) {
+                if (Indexer.getCurrentPosition() < targetposition + 1
+                        && Indexer.getCurrentPosition() > targetposition - 1) {
                     stateTimer.reset();
                     FlywheelState = FlywheelState.SHOOT;
                 }
                 break;
             case SHOOT:
                 leftKicker.setPosition(.7);
-                if (stateTimer.milliseconds() > .5) {
+                if (stateTimer.milliseconds() > 300) {
                     shotsRemaning--;
                     stateTimer.reset();
                     FlywheelState = FlywheelState.RESET_GATE;
@@ -114,12 +117,11 @@ public class flyWheelLogic {
             case RESET_GATE:
                 if (shotsRemaning > 0) {
                     leftKicker.setPosition(1);
-                    if (stateTimer.seconds()>.5){
+                    if (stateTimer.seconds() > .5) {
                         stateTimer.reset();
                         FlywheelState = FlywheelState.SPIN_UP;
                     }
-                }
-                else {
+                } else {
                     leftKicker.setPosition(1);
                     stateTimer.reset();
                     FlywheelState = FlywheelState.IDLE;
@@ -162,7 +164,8 @@ public class flyWheelLogic {
     public double getIndexerpower() {
         return Indexer.getPower();
     }
-    public double getkickerpos(){
+
+    public double getkickerpos() {
         return leftKicker.getPosition();
     }
 
