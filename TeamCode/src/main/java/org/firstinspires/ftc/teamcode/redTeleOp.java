@@ -20,7 +20,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 
 @Config
-@TeleOp(name = "Red far teleop")
+@TeleOp(name = "red far teleop")
 public class redTeleOp extends LinearOpMode {
     // Dc Motor dec
     private DcMotor leftFrontDrive = null;
@@ -36,7 +36,7 @@ public class redTeleOp extends LinearOpMode {
 
     private Servo Pitch = null;
     Limelight3A limelight;
-   private DigitalChannel laserInput;
+    private DigitalChannel laserInput;
     private GoBildaPinpointDriver pinpoint = null;
     // Constants
     // indexer
@@ -48,38 +48,15 @@ public class redTeleOp extends LinearOpMode {
     int ballThreeShoot = 90+360;
 
     int ballOneIntake = 0;
-    int ballTwoIntake = ballOneIntake + 179;
-    int ballThreeIntake = ballTwoIntake + 179;
+    int ballTwoIntake = ballOneIntake + 180;
+    int ballThreeIntake = ballTwoIntake + 180;
 
     int TargetPosition = ballOneIntake;
-    int[] ordera = { 2, 1, 1 };
-    int[] orderb = { 1, 2, 1 };
-    int[] orderc = { 1, 1, 2 };
-    int[] targetOrder = orderc;
-    int ballOneColor = 0;// 0 acts as null 1 is purple 2 is green
-    int ballTwoColor = 0;// 0 acts as null 1 is purple 2 is green
-    int ballThreeColor = 0;// 0 acts as null 1 is purple 2 is green
-
-    boolean ballOneCounted = false;
-    boolean ballTwoCounted = false;
-    boolean ballThreeCounted = false;
-
-    boolean purple = false;
-    boolean green = false;
-    int[] ballColorArray = { ballOneColor, ballTwoColor, ballThreeColor };
     boolean lastintake = true;
     // constants for indexer
-    private ColorSensorV3 colorSensor;
-
-    // declared like this so if motors are swapped I only have to find one value
-    private PIDControllerRyan indexerPID = null;
-    private PIDControllerRyan turretPID = null;
-    private PIDTuner pidTuner = null;
-
 
     static double TargetX = 0;// find this
 
-    double TargetAngle = 0;
 
     public static double VF = 0;
     int targetID = 0;
@@ -92,8 +69,6 @@ public class redTeleOp extends LinearOpMode {
     private final int turretmaxr = 0 + offset;
 
 
-    private double tpr = 537.7;
-
     private double x = 0;
     private double y = 0;
     private double heading = 0;
@@ -103,7 +78,7 @@ public class redTeleOp extends LinearOpMode {
     Pose2D currentPose = new Pose2D(DistanceUnit.INCH,96, 8, AngleUnit.DEGREES,90);//used to save position after autonomous
     boolean autoIntake = false;
     private double distanceToTarget;
-    private double targetx = 144;
+    private double targetx = 0;
     private double targety = 144;
     private double xV;
     private double yV;
@@ -114,10 +89,6 @@ public class redTeleOp extends LinearOpMode {
     private double TURRET_TICKS_PER_RADIAN = 537.7/(Math.PI*2);
 
     private int turretTargetPosition = 0;
-    private double inpower;
-    private double kp=17;
-    private double amount=1;
-    private double kf=700;
 
     @Override
     public void runOpMode() {
@@ -136,7 +107,7 @@ public class redTeleOp extends LinearOpMode {
         pinpoint.setOffsets(3.425,6.424,DistanceUnit.INCH);
         pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED, GoBildaPinpointDriver.EncoderDirection.REVERSED);
         pinpoint.setPosition(currentPose);
-        
+
         // base
         leftFrontDrive = hardwareMap.get(DcMotor.class, "leftFrontDrive");
         leftBackDrive = hardwareMap.get(DcMotor.class, "leftBackDrive");
@@ -161,12 +132,11 @@ public class redTeleOp extends LinearOpMode {
         setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
-        Indexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        Indexer.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         Indexer.setTargetPosition(TargetPosition);
-        Indexer.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
-        Indexer.setPower(1);
+        Indexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         Indexer.setPositionPIDFCoefficients(10);
-
+        Indexer.setPower(1);
 
         turret.setDirection(DcMotor.Direction.FORWARD);
         turret.setPower(-.5);
@@ -175,7 +145,7 @@ public class redTeleOp extends LinearOpMode {
         turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turret.setTargetPosition(0);
         turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        turret.setPositionPIDFCoefficients(10);
+        turret.setPositionPIDFCoefficients(20);
         turret.setPower(1);
 
         laserInput.setMode(DigitalChannel.Mode.INPUT);
@@ -185,10 +155,14 @@ public class redTeleOp extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
         telemetry.update();
-        PIDFCoefficients conts = new PIDFCoefficients(kf,0,0,kp);
-        Flywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER,conts);
+        PIDFCoefficients flyhweelconts = new PIDFCoefficients(700,0,0,17);
+        Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
         Thread KickerThread = new Thread(this::Operations);
+
+
         waitForStart();
+
+
         KickerThread.start();
 
         while (opModeIsActive()) { // Loop
@@ -197,7 +171,7 @@ public class redTeleOp extends LinearOpMode {
             y = pinpoint.getPosition().getY(DistanceUnit.INCH);
             heading = pinpoint.getHeading(AngleUnit.RADIANS);
             distanceToTarget = Math.sqrt(Math.pow(x - targetx, 2) + Math.pow(y - targety, 2));
-            //Calculate(distanceToTarget);
+            Calculate(distanceToTarget);
             xV = pinpoint.getVelX(DistanceUnit.INCH);
             yV = pinpoint.getVelY(DistanceUnit.INCH);
             netV = Math.sqrt(Math.pow(xV, 2) + Math.pow(yV, 2));
@@ -277,25 +251,18 @@ public class redTeleOp extends LinearOpMode {
             else{
                 Pitch.setPosition(1);
             }
-            conts = new PIDFCoefficients(kf,0,0,kp);
-            Flywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER,conts);
-            Flywheel.setVelocity(VF);
+
+
 
 
             // --------------------------- TELEMETRY --------------------------- //
             // Show the elapsed game time and wheel power.
             telemetry.addData("Laser", detected);
-            telemetry.addData("kf", kf);
-            telemetry.addData("kp", kp);
-            telemetry.addData("amount",amount);
-            telemetry.addData("vf", VF);
-            telemetry.addData("Flywheel v", Flywheel.getVelocity());
             telemetry.addData("Front left/Right", "%4.2f, %4.2f",
                     leftFrontDrive.getPower(), rightFrontDrive.getPower());
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f",
                     leftBackDrive.getPower(), rightBackDrive.getPower());
             telemetry.addData("Indexer power", Indexer.getPower());
-            telemetry.addData("Indexer power", inpower);
             telemetry.addData("Indexer Position", "%d",
                     Indexer.getCurrentPosition());
             telemetry.addData("Indexer Target Position", "%d",
@@ -310,9 +277,6 @@ public class redTeleOp extends LinearOpMode {
             telemetry.addData("Ball one pos", ballOneIntake);
             telemetry.addData("Ball two pos ", ballTwoIntake);
             telemetry.addData("Ball three pos", ballThreeIntake);
-            telemetry.addData("Current Order", targetOrder[0]);
-            telemetry.addData("Current Order", targetOrder[1]);
-            telemetry.addData("Current Order", targetOrder[2]);
             telemetry.addData("Flywheel Target RPM", VF);
             telemetry.addData("distance", TargetX);
             telemetry.addData("ty", ty);
@@ -352,6 +316,9 @@ public class redTeleOp extends LinearOpMode {
             TargetPosition = ballOneIntake;
 
         } else {
+            if(intakeCounter == 1){
+                TargetPosition = ballOneIntake;
+            }
             if(intakeCounter==2){
                 TargetPosition = ballTwoIntake;
             }
@@ -373,6 +340,9 @@ public class redTeleOp extends LinearOpMode {
             TargetPosition = ballOneIntake;
 
         } else {
+            if(intakeCounter == 1){
+                TargetPosition = ballOneIntake;
+            }
             if(intakeCounter==2){
                 TargetPosition = ballThreeIntake;
             }
@@ -393,6 +363,9 @@ public class redTeleOp extends LinearOpMode {
             shootCounter=1;
             TargetPosition = BallOneShoot;
         } else {
+            if(shootCounter == 1){
+                TargetPosition = ballOneIntake;
+            }
             if(shootCounter==2){
                 TargetPosition = BallTwoShoot;
             }
@@ -411,6 +384,9 @@ public class redTeleOp extends LinearOpMode {
             shootCounter=1;
             TargetPosition = BallTwoShoot;
         } else {
+            if(shootCounter == 1){
+                TargetPosition = BallTwoShoot;
+            }
             if(shootCounter==3){
                 TargetPosition = BallOneShoot;
             }
@@ -427,7 +403,7 @@ public class redTeleOp extends LinearOpMode {
         while (opModeIsActive()) {
             detected = laserInput.getState();
             if (lastDetected && !detected) {
-                sleep(200);
+                sleep(1000);
                 intake();
             }
             lastDetected = detected;
@@ -438,6 +414,7 @@ public class redTeleOp extends LinearOpMode {
             }
             Indexer.setTargetPosition(TargetPosition);
             turret.setTargetPosition(turretTargetPosition);
+            Flywheel.setVelocity(VF);
             sleep(70);
         }
     }

@@ -353,10 +353,13 @@ public class blueTeleOp extends LinearOpMode {
             TargetPosition = ballOneIntake;
 
         } else {
-            if(intakeCounter==3){
-                TargetPosition = ballTwoIntake;
+            if(intakeCounter == 1){
+                TargetPosition = ballOneIntake;
             }
             if(intakeCounter==2){
+                TargetPosition = ballTwoIntake;
+            }
+            if(intakeCounter==3){
                 TargetPosition = ballThreeIntake;
             }
 
@@ -374,6 +377,9 @@ public class blueTeleOp extends LinearOpMode {
             TargetPosition = ballOneIntake;
 
         } else {
+            if(intakeCounter == 1){
+                TargetPosition = ballOneIntake;
+            }
             if(intakeCounter==2){
                 TargetPosition = ballThreeIntake;
             }
@@ -394,6 +400,9 @@ public class blueTeleOp extends LinearOpMode {
             shootCounter=1;
             TargetPosition = BallOneShoot;
         } else {
+            if(shootCounter == 1){
+                TargetPosition = ballOneIntake;
+            }
             if(shootCounter==2){
                 TargetPosition = BallTwoShoot;
             }
@@ -412,6 +421,9 @@ public class blueTeleOp extends LinearOpMode {
             shootCounter=1;
             TargetPosition = BallTwoShoot;
         } else {
+            if(shootCounter == 1){
+                TargetPosition = BallTwoShoot;
+            }
             if(shootCounter==3){
                 TargetPosition = BallOneShoot;
             }

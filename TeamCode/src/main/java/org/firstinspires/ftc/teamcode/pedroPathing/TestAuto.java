@@ -54,8 +54,6 @@ public class TestAuto  extends OpMode {
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
     public Follower follower; // Pedro Pathing follower instance
     private int pathState = 0; // Current autonomous path state (state machine)
-
-    private int targetPostion = 0;
     private Paths paths; // Paths defined in the Paths class
 
 
@@ -111,7 +109,6 @@ public class TestAuto  extends OpMode {
         Indexer.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
         Indexer.setPower(1);
         Indexer.setPositionPIDFCoefficients(10);
-        Indexer.setTargetPositionTolerance(1);
 
 
         panelsTelemetry.debug("Status", "Initialized");
@@ -121,9 +118,9 @@ public class TestAuto  extends OpMode {
     @Override
     public void loop() {
         follower.update(); // Update Pedro Pathing
+        shooter.update();
+        shooter.pids();
         pathState = autonomousPathUpdate();// Update autonomous state machine
-        Indexer.setTargetPosition(targetPostion);
-        Flywheel.setVelocity(1250);
 
         //makes sure teleop gets position thats stopped on
         savedPosition.setX(follower.getPose().getX());
@@ -263,42 +260,19 @@ public class TestAuto  extends OpMode {
     public int autonomousPathUpdate() {
         switch (pathState) {
             case 0://preload
-                if(pathTimer.getElapsedTimeSeconds()<=7){
-                    if(pathTimer.getElapsedTimeSeconds()<2)
-                        targetPostion=90;
-                    if(!Indexer.isBusy()){
-                        leftKicker.setPosition(.7);
-                        if(leftKicker.getPosition() == .7){
-                            leftKicker.setPosition(1);
-                        }
-                    }
-                    if(pathTimer.getElapsedTimeSeconds()>2&& pathTimer.getElapsedTimeSeconds()<4) {
-                        targetPostion = 270;
-                        if (!Indexer.isBusy()) {
-                            leftKicker.setPosition(.7);
-                            if (leftKicker.getPosition() == .7) {
-                                leftKicker.setPosition(1);
-                            }
-                        }
-                    }
-                    if(pathTimer.getElapsedTimeSeconds()>4&& pathTimer.getElapsedTimeSeconds()<7) {
-                        targetPostion = 450;
-                        if (!Indexer.isBusy()) {
-                            leftKicker.setPosition(.7);
-                            if (leftKicker.getPosition() == .7) {
-                                leftKicker.setPosition(1);
-                            }
-                        }
-                    }
-
+                if(!shotsTriggered) {
+                    shooter.fireShots(3);
+                    shotsTriggered = true;
                 }
-                else{
+                if(!Indexer.isBusy() && shooter.getShotsRemaning()==0){
                     setPathState(1);
                 }
                 break;
             case 1:// in line with row 1
                 follower.followPath(Paths.Path1);
+
                 if (!follower.isBusy()) {
+                    intaker.intakeBALLZ(1);
                     setPathState(2);
                 }
                 break;
