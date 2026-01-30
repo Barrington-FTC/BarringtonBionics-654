@@ -34,7 +34,7 @@ import org.firstinspires.ftc.teamcode.savedPosition;
 
 @Autonomous(name = "TestAuto", group = "Autonomous")
 @Configurable // Panels
-public class TestAuto  extends OpMode {
+public class TestAuto extends OpMode {
 
     private DcMotorEx Indexer = null;
 
@@ -43,23 +43,20 @@ public class TestAuto  extends OpMode {
     private Servo pitch = null;
     private Servo leftKicker = null;
 
-
     private flyWheelLogic shooter = new flyWheelLogic();
 
     private IntakeLogic intaker = new IntakeLogic();
 
     private boolean shotsTriggered = false;
 
-    private PathConstraints constraints = new PathConstraints(1,.1,1,.5,.5,.3,1,.7);// so you can use the is busy funtion not my bullshit
+    private PathConstraints constraints = new PathConstraints(1, .1, 1, .5, .5, .3, 1, .7);// so you can use the is busy
+    // funtion not my bullshit
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
     public Follower follower; // Pedro Pathing follower instance
     private int pathState = 0; // Current autonomous path state (state machine)
     private Paths paths; // Paths defined in the Paths class
 
-
-    private Timer pathTimer, actionTimer,opmodeTimer;
-
-
+    private Timer pathTimer, actionTimer, opmodeTimer;
 
     @Override
     public void init() {
@@ -70,46 +67,48 @@ public class TestAuto  extends OpMode {
         opmodeTimer.resetTimer();
 
         follower = Constants.createFollower(hardwareMap);
-        //adds tollerances for when a path is considered complete
+        // adds tollerances for when a path is considered complete
         constraints.setTranslationalConstraint(1);
         constraints.setVelocityConstraint(.1);
         constraints.setTimeoutConstraint(.5);
         constraints.setHeadingConstraint(.5);
         follower.setConstraints(constraints);
         follower.setStartingPose(new Pose(48, 8, Math.toRadians(90)));
-        //allows robot to do things in auto
-        shooter.init(hardwareMap);
-        intaker.init(hardwareMap);
-
-        paths = new Paths(follower); // Build paths
-        pitch = hardwareMap.get(Servo.class, "Pitch");
-        Turret = hardwareMap.get(DcMotorEx.class, "turret");
+        // indexer
         Indexer = hardwareMap.get(DcMotorEx.class, "Indexer");
-        leftKicker = hardwareMap.get(Servo.class, "leftKicker");
-        Flywheel = hardwareMap.get(DcMotorEx.class, "Flywheel");
-
-        //flywheel
-        Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
-        PIDFCoefficients flyhweelconts = new PIDFCoefficients(700,0,0,17);
-        Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
-        Flywheel.setVelocity(1250);
-        //servos
-        pitch.setPosition(1);
-        leftKicker.setPosition(1);
-        //turret setup
-        Turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        Turret.setTargetPosition(600);
-        Turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        Indexer.setPositionPIDFCoefficients(10);
-        Turret.setPower(1);
-        //indexer
         Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
         Indexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         Indexer.setTargetPosition(0);
         Indexer.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+        Indexer.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         Indexer.setPower(1);
         Indexer.setPositionPIDFCoefficients(10);
 
+        // allows robot to do things in auto
+        shooter.init(hardwareMap, Indexer);
+        intaker.init(hardwareMap, Indexer);
+
+        paths = new Paths(follower); // Build paths
+        pitch = hardwareMap.get(Servo.class, "Pitch");
+        Turret = hardwareMap.get(DcMotorEx.class, "turret");
+        // Indexer = hardwareMap.get(DcMotorEx.class, "Indexer"); // Removed duplicate
+        leftKicker = hardwareMap.get(Servo.class, "leftKicker");
+        Flywheel = hardwareMap.get(DcMotorEx.class, "Flywheel");
+
+        // flywheel
+        Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        PIDFCoefficients flyhweelconts = new PIDFCoefficients(700, 0, 0, 17);
+        Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER, flyhweelconts);
+        Flywheel.setVelocity(1300);
+        // servos
+        pitch.setPosition(1);
+        leftKicker.setPosition(1);
+        // turret setup
+        Turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        Turret.setTargetPosition(550);
+        Turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        Indexer.setPositionPIDFCoefficients(20);
+        Turret.setPower(1);
 
         panelsTelemetry.debug("Status", "Initialized");
         panelsTelemetry.update(telemetry);
@@ -119,10 +118,10 @@ public class TestAuto  extends OpMode {
     public void loop() {
         follower.update(); // Update Pedro Pathing
         shooter.update();
-        shooter.pids();
+        intaker.update();
         pathState = autonomousPathUpdate();// Update autonomous state machine
 
-        //makes sure teleop gets position thats stopped on
+        // makes sure teleop gets position thats stopped on
         savedPosition.setX(follower.getPose().getX());
         savedPosition.sety(follower.getPose().getY());
         savedPosition.seth(follower.getPose().getHeading());
@@ -136,9 +135,9 @@ public class TestAuto  extends OpMode {
         panelsTelemetry.debug("current pos", shooter.getIndexerPos());
         panelsTelemetry.debug("target pos", shooter.getIndexerTargetPos());
         panelsTelemetry.debug("Power", shooter.getIndexerpower());
+        panelsTelemetry.debug("Power", shooter.getkickerpos());
         panelsTelemetry.update(telemetry);
     }
-
 
     public static class Paths {
         public static PathChain Path0;
@@ -159,112 +158,95 @@ public class TestAuto  extends OpMode {
             Path0 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 8.000))
-                    )
+                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 8.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
                     .build();
             Path1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 35.000))
-                    )
+                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 35.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))
                     .build();
 
             Path2 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(48.000, 35.000), new Pose(36.000, 35.000))
-                    )
+                            new BezierLine(new Pose(48.000, 35.000), new Pose(36.000, 35.000)))
                     .setTangentHeadingInterpolation()
                     .build();
 
             Path3 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(36.000, 35.000), new Pose(30.000, 35.000))
-                    )
+                            new BezierLine(new Pose(36.000, 35.000), new Pose(30.000, 35.000)))
                     .setTangentHeadingInterpolation()
                     .build();
 
             Path4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(30.000, 35.000), new Pose(18.000, 35.000))
-                    )
+                            new BezierLine(new Pose(30.000, 35.000), new Pose(18.000, 35.000)))
                     .setTangentHeadingInterpolation()
                     .build();
 
             Path5 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(18.000, 35.000), new Pose(48.000, 0.000))
-                    )
+                            new BezierLine(new Pose(18.000, 35.000), new Pose(48.000, 0.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
                     .build();
 
             Path6 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 60.000))
-                    )
+                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 60.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))
                     .build();
 
             Path7 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(48.000, 60.000), new Pose(36.000, 60.000))
-                    )
+                            new BezierLine(new Pose(48.000, 60.000), new Pose(36.000, 60.000)))
                     .setTangentHeadingInterpolation()
                     .build();
 
             Path8 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(36.000, 60.000), new Pose(30.000, 60.000))
-                    )
+                            new BezierLine(new Pose(36.000, 60.000), new Pose(30.000, 60.000)))
                     .setTangentHeadingInterpolation()
                     .build();
 
             Path9 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(30.000, 60.000), new Pose(18.000, 60.000))
-                    )
+                            new BezierLine(new Pose(30.000, 60.000), new Pose(18.000, 60.000)))
                     .setTangentHeadingInterpolation()
                     .build();
 
             Path10 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(18.000, 60.000), new Pose(48.000, 8.000))
-                    )
+                            new BezierLine(new Pose(18.000, 60.000), new Pose(48.000, 8.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
                     .build();
             Path11 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 30.000))
-                    )
+                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 30.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
                     .build();
         }
-        }
-
-
-
-
-
+    }
 
     public int autonomousPathUpdate() {
         switch (pathState) {
-            case 0://preload
-                if(!shotsTriggered) {
+            case 0:// preload
+                if (!shotsTriggered) {
                     shooter.fireShots(3);
                     shotsTriggered = true;
                 }
-                if(!Indexer.isBusy() && shooter.getShotsRemaning()==0){
+                if (!shooter.isBusy() && shooter.getShotsRemaning() == 0) {
                     setPathState(1);
                 }
                 break;
@@ -276,7 +258,7 @@ public class TestAuto  extends OpMode {
                     setPathState(2);
                 }
                 break;
-            case 2://first ball pickup
+            case 2:// first ball pickup
                 follower.followPath(Paths.Path2);
                 if (!follower.isBusy()) {
                     setPathState(3);
