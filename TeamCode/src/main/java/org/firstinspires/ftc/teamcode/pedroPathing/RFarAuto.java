@@ -24,7 +24,7 @@ import org.firstinspires.ftc.teamcode.savedPosition;
 
 @Autonomous(name = "red far auto", group = "Autonomous")
 @Configurable // Panels
-public class blueFarAuto extends OpMode {
+public class RFarAuto extends OpMode {
 
     private DcMotorEx Indexer = null;
 
@@ -227,7 +227,7 @@ public class blueFarAuto extends OpMode {
     public int autonomousPathUpdate() {
         switch (pathState) {
             case 0:// preload
-                if (!shotsTriggered) {
+                if (!shotsTriggered && Flywheel.getVelocity()>1390) {
                     shooter.fireShots(3);
                     shotsTriggered = true;
                 }
@@ -285,7 +285,7 @@ public class blueFarAuto extends OpMode {
                 follower.followPath(Paths.Path6);
                 intaker.intakeBALLZ(1);
                 if (followerArivved()) {
-                    setPathState(8);
+                    setPathState(13);//set to end in line with r2
                 }
                 break;
             case 8://r2 b1
@@ -326,7 +326,9 @@ public class blueFarAuto extends OpMode {
                     setPathState(7);
                 }
             case 13:// ranking points
-                follower.followPath(Paths.Path11);
+                terminateOpModeNow();
+                //follower.followPath(Paths.Path11);
+
         }
 
         // Add your state machine Here

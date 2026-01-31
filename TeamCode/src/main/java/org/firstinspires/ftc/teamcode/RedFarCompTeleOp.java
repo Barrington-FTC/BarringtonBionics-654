@@ -20,8 +20,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 
 @Config
-@TeleOp(name = "blue far teleop")
-public class blueTeleOp extends LinearOpMode {
+@TeleOp(name = "Fed Far Comp TeleOp")
+public class RedFarCompTeleOp extends LinearOpMode {
     // Dc Motor dec
     private DcMotor leftFrontDrive = null;
     private DcMotor leftBackDrive = null;
@@ -52,34 +52,11 @@ public class blueTeleOp extends LinearOpMode {
     int ballThreeIntake = ballTwoIntake + 180;
 
     int TargetPosition = ballOneIntake;
-    int[] ordera = { 2, 1, 1 };
-    int[] orderb = { 1, 2, 1 };
-    int[] orderc = { 1, 1, 2 };
-    int[] targetOrder = orderc;
-    int ballOneColor = 0;// 0 acts as null 1 is purple 2 is green
-    int ballTwoColor = 0;// 0 acts as null 1 is purple 2 is green
-    int ballThreeColor = 0;// 0 acts as null 1 is purple 2 is green
-
-    boolean ballOneCounted = false;
-    boolean ballTwoCounted = false;
-    boolean ballThreeCounted = false;
-
-    boolean purple = false;
-    boolean green = false;
-    int[] ballColorArray = { ballOneColor, ballTwoColor, ballThreeColor };
     boolean lastintake = true;
     // constants for indexer
-    private ColorSensorV3 colorSensor;
-
-    // declared like this so if motors are swapped I only have to find one value
-    private PIDControllerRyan indexerPID = null;
-    private PIDControllerRyan turretPID = null;
-    private PIDTuner pidTuner = null;
-
 
     static double TargetX = 0;// find this
 
-    double TargetAngle = 0;
 
     public static double VF = 0;
     int targetID = 0;
@@ -92,18 +69,16 @@ public class blueTeleOp extends LinearOpMode {
     private final int turretmaxr = 0 + offset;
 
 
-    private double tpr = 537.7;
-
     private double x = 0;
     private double y = 0;
     private double heading = 0;
     public boolean detected;
     public boolean lastDetected;
 
-    Pose2D currentPose = new Pose2D(DistanceUnit.INCH,48, 8, AngleUnit.DEGREES,90);//used to save position after autonomous
+    Pose2D currentPose = new Pose2D(DistanceUnit.INCH,savedPosition.getX(), savedPosition.getY(), AngleUnit.RADIANS,savedPosition.getHeading());//used to save position after autonomous
     boolean autoIntake = false;
     private double distanceToTarget;
-    private double targetx = 0;
+    private double targetx = 144;
     private double targety = 144;
     private double xV;
     private double yV;
@@ -114,14 +89,6 @@ public class blueTeleOp extends LinearOpMode {
     private double TURRET_TICKS_PER_RADIAN = 537.7/(Math.PI*2);
 
     private int turretTargetPosition = 0;
-    private double inpower;
-
-    private double kp = 0;
-
-    private double kf = 0;
-
-    private double amount = 1;
-    FlywheelPIDController pids = null;
 
     @Override
     public void runOpMode() {
@@ -296,7 +263,6 @@ public class blueTeleOp extends LinearOpMode {
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f",
                     leftBackDrive.getPower(), rightBackDrive.getPower());
             telemetry.addData("Indexer power", Indexer.getPower());
-            telemetry.addData("Indexer power", inpower);
             telemetry.addData("Indexer Position", "%d",
                     Indexer.getCurrentPosition());
             telemetry.addData("Indexer Target Position", "%d",
@@ -311,9 +277,6 @@ public class blueTeleOp extends LinearOpMode {
             telemetry.addData("Ball one pos", ballOneIntake);
             telemetry.addData("Ball two pos ", ballTwoIntake);
             telemetry.addData("Ball three pos", ballThreeIntake);
-            telemetry.addData("Current Order", targetOrder[0]);
-            telemetry.addData("Current Order", targetOrder[1]);
-            telemetry.addData("Current Order", targetOrder[2]);
             telemetry.addData("Flywheel Target RPM", VF);
             telemetry.addData("distance", TargetX);
             telemetry.addData("ty", ty);

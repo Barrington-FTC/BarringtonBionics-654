@@ -24,7 +24,7 @@ import org.firstinspires.ftc.teamcode.savedPosition;
 
 @Autonomous(name = "blue far auto", group = "Autonomous")
 @Configurable // Panels
-public class redFarAuto extends OpMode {
+public class BFarAuto extends OpMode {
 
     private DcMotorEx Indexer = null;
 
@@ -59,10 +59,6 @@ public class redFarAuto extends OpMode {
 
         follower = Constants.createFollower(hardwareMap);
         // adds tollerances for when a path is considered complete
-        constraints.setTranslationalConstraint(1);
-        constraints.setVelocityConstraint(.1);
-        constraints.setTimeoutConstraint(.5);
-        constraints.setHeadingConstraint(.5);
         follower.setConstraints(constraints);
         follower.setStartingPose(new Pose(48, 0, Math.toRadians(90)));
         // indexer
@@ -284,7 +280,7 @@ public class redFarAuto extends OpMode {
                 follower.followPath(Paths.Path6);
 
                 if (followerArivved()) {
-                    setPathState(8);
+                    setPathState(13);
                 }
                 break;
             case 8://r2 b1
@@ -324,7 +320,8 @@ public class redFarAuto extends OpMode {
                     setPathState(7);
                 }
             case 13:// ranking points
-                follower.followPath(Paths.Path11);
+                terminateOpModeNow();
+                //follower.followPath(Paths.Path11);
         }
 
         // Add your state machine Here

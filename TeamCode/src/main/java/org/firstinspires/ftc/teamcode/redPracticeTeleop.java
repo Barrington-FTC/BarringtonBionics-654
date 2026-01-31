@@ -20,8 +20,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 
 @Config
-@TeleOp(name = "red far teleop")
-public class redTeleOp extends LinearOpMode {
+@TeleOp(name = "red far practice")
+public class redPracticeTeleop extends LinearOpMode {
     // Dc Motor dec
     private DcMotor leftFrontDrive = null;
     private DcMotor leftBackDrive = null;
