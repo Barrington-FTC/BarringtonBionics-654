@@ -64,8 +64,7 @@ public class flyWheelLogic {
         Turret.setPower(1);
 
         FlywheelState = FlywheelState.IDLE;
-        Flywheel.setVelocity(1390);
-        leftKicker.setPosition(1);
+        leftKicker.setPosition(.01);
     }
 
     public void update() {
@@ -97,14 +96,14 @@ public class flyWheelLogic {
                     targetposition = shootThree;
                 }
                 Indexer.setTargetPosition(targetposition);
-                if (!Indexer.isBusy()) {
+                if (!Indexer.isBusy() && Flywheel.getVelocity()>1350) {
                     stateTimer.reset();
                     FlywheelState = FlywheelState.SHOOT;
                 }
                 break;
             case SHOOT:
-                leftKicker.setPosition(.7);
-                if (stateTimer.seconds()>.9) {
+                leftKicker.setPosition(.3);
+                if (stateTimer.seconds()>.3) {
                     shotsRemaning--;
                     stateTimer.reset();
                     FlywheelState = FlywheelState.RESET_GATE;
@@ -112,13 +111,13 @@ public class flyWheelLogic {
                 break;
             case RESET_GATE:
                 if (shotsRemaning > 0) {
-                    leftKicker.setPosition(1);
+                    leftKicker.setPosition(.01);
                     if (stateTimer.seconds() > .5) {
                         stateTimer.reset();
                         FlywheelState = FlywheelState.SPIN_UP;
                     }
                 } else {
-                    leftKicker.setPosition(1);
+                    leftKicker.setPosition(.01);
                     stateTimer.reset();
                     FlywheelState = FlywheelState.IDLE;
                 }

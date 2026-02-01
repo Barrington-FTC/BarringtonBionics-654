@@ -62,9 +62,9 @@ public class BlueFarCompTeleOp extends LinearOpMode {
     double tx = 0;
     double ty = 0;
     double ta = 0;
-    private final int offset = 0;
-    private final int turretmaxl = 1087 + offset;
-    private final int turretmaxr = 0 + offset;
+    private int offset = 0;
+    private final int turretmaxl = 1087;
+    private final int turretmaxr = 0;
 
     private double x = 0;
     private double y = 0;
@@ -137,7 +137,6 @@ public class BlueFarCompTeleOp extends LinearOpMode {
         setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
-        Indexer.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         Indexer.setTargetPosition(TargetPosition);
         Indexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         Indexer.setPositionPIDFCoefficients(10);
@@ -157,7 +156,7 @@ public class BlueFarCompTeleOp extends LinearOpMode {
         Intake = hardwareMap.get(DcMotor.class, "Intake");
         Intake.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        leftKicker.setPosition(.98);
+        leftKicker.setPosition(.01);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -232,6 +231,15 @@ public class BlueFarCompTeleOp extends LinearOpMode {
             leftBackDrive.setPower(leftBackPower);
             rightBackDrive.setPower(rightBackPower);
 
+            //debug
+
+            if(gamepad2.leftBumperWasPressed()){
+                offset+=5;
+            }
+            if(gamepad2.rightBumperWasPressed()){
+                offset-=5;
+            }
+
             // Intake
             if (gamepad1.right_trigger > 0.01) {
                 Intake.setPower(1);
@@ -298,7 +306,7 @@ public class BlueFarCompTeleOp extends LinearOpMode {
             VF= 4.95027*dih+670.39441;
         }
         else{
-            VF = 5.12863*dih+700.91572;
+            VF = 4.96245*dih+684.17756;
         }
     }
     private void intake(){
@@ -404,12 +412,15 @@ public class BlueFarCompTeleOp extends LinearOpMode {
             }
             lastDetected = detected;
             if (gamepad1.aWasPressed()) {
-                leftKicker.setPosition(.7);
+                leftKicker.setPosition(.001);
                 sleep(800);
-                leftKicker.setPosition(1);
+                leftKicker.setPosition(.3);
             }
             Indexer.setTargetPosition(TargetPosition);
             turret.setTargetPosition(turretTargetPosition);
+            if(Indexer.getCurrentPosition() == TargetPosition){
+                gamepad1.rumble(100);
+            }
             Flywheel.setVelocity(VF);
             sleep(70);
         }

@@ -56,15 +56,15 @@ public class IntakeLogic {
                 break;
             case INTAKE:
                 Intake.setPower(1);
-                    if (laserInput.getState()) {
+                    if (stateTimer.seconds() >= .8) {
                         INTAKE_TARGET += 180;
                         stateTimer.reset();
                         IntakeState = IntakeState.INDEX;
                 }
                 break;
             case INDEX:
-                if (stateTimer.seconds() >= .5){
-                    Indexer.setTargetPosition(INTAKE_TARGET);
+                Indexer.setTargetPosition(INTAKE_TARGET);
+                if(stateTimer.seconds() >= .9) {
                     intakeCount--;
                     stateTimer.reset();
                     IntakeState = IntakeState.IDLE;

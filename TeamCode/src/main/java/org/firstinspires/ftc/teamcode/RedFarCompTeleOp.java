@@ -20,7 +20,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 
 @Config
-@TeleOp(name = "Fed Far Comp TeleOp")
+@TeleOp(name = "Red Far Comp TeleOp")
 public class RedFarCompTeleOp extends LinearOpMode {
     // Dc Motor dec
     private DcMotor leftFrontDrive = null;
@@ -64,9 +64,9 @@ public class RedFarCompTeleOp extends LinearOpMode {
     double ty = 0;
 
     double ta = 0;
-    private final int offset = 0;
-    private final int turretmaxl = 1087 + offset;
-    private final int turretmaxr = 0 + offset;
+    private int offset = 0;
+    private final int turretmaxl = 1087;
+    private final int turretmaxr = 0;
 
 
     private double x = 0;
@@ -142,7 +142,6 @@ public class RedFarCompTeleOp extends LinearOpMode {
         turret.setPower(-.5);
         sleep(2000);
         turret.setPower(0);
-        turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turret.setTargetPosition(0);
         turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         turret.setPositionPIDFCoefficients(20);
@@ -151,18 +150,14 @@ public class RedFarCompTeleOp extends LinearOpMode {
         laserInput.setMode(DigitalChannel.Mode.INPUT);
         Intake = hardwareMap.get(DcMotor.class, "Intake");
         Intake.setDirection(DcMotorSimple.Direction.REVERSE);
-        leftKicker.setPosition(1);
+        leftKicker.setPosition(.01);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
         telemetry.update();
         PIDFCoefficients flyhweelconts = new PIDFCoefficients(700,0,0,17);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
         Thread KickerThread = new Thread(this::Operations);
-
-
         waitForStart();
-
-
         KickerThread.start();
 
         while (opModeIsActive()) { // Loop
@@ -225,6 +220,16 @@ public class RedFarCompTeleOp extends LinearOpMode {
             rightFrontDrive.setPower(rightFrontPower);
             leftBackDrive.setPower(leftBackPower);
             rightBackDrive.setPower(rightBackPower);
+
+            //debug
+            if(gamepad2.leftBumperWasPressed()){
+                offset+=5;
+            }
+            if(gamepad2.rightBumperWasPressed()){
+                offset-=5;
+            }
+
+
 
             // Intake
             if (gamepad1.right_trigger > 0.01) {
@@ -302,7 +307,7 @@ public class RedFarCompTeleOp extends LinearOpMode {
             VF= 4.95027*dih+670.39441;
         }
         else{
-            VF = 5.12863*dih+700.91572;
+            VF = 4.96245*dih+684.17756;
         }
     }
     private void intake(){
@@ -408,9 +413,9 @@ public class RedFarCompTeleOp extends LinearOpMode {
             }
             lastDetected = detected;
             if (gamepad1.aWasPressed()) {
-                leftKicker.setPosition(.7);
+                leftKicker.setPosition(.3);
                 sleep(800);
-                leftKicker.setPosition(1);
+                leftKicker.setPosition(.01);
             }
             Indexer.setTargetPosition(TargetPosition);
             turret.setTargetPosition(turretTargetPosition);

@@ -64,7 +64,7 @@ public class redPracticeTeleop extends LinearOpMode {
     double ty = 0;
 
     double ta = 0;
-    private final int offset = 0;
+    private int offset = 0;
     private final int turretmaxl = 1087 + offset;
     private final int turretmaxr = 0 + offset;
 
@@ -151,7 +151,7 @@ public class redPracticeTeleop extends LinearOpMode {
         laserInput.setMode(DigitalChannel.Mode.INPUT);
         Intake = hardwareMap.get(DcMotor.class, "Intake");
         Intake.setDirection(DcMotorSimple.Direction.REVERSE);
-        leftKicker.setPosition(1);
+        leftKicker.setPosition(.01);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -251,6 +251,12 @@ public class redPracticeTeleop extends LinearOpMode {
             else{
                 Pitch.setPosition(1);
             }
+            if(gamepad2.leftBumperWasPressed()){
+                offset+=5;
+            }
+            if(gamepad2.rightBumperWasPressed()){
+                offset-=5;
+            }
 
 
 
@@ -302,7 +308,7 @@ public class redPracticeTeleop extends LinearOpMode {
             VF= 4.95027*dih+670.39441;
         }
         else{
-            VF = 5.12863*dih+700.91572;
+            VF = 4.96245*dih+684.17756;
         }
     }
     private void intake(){
@@ -408,9 +414,9 @@ public class redPracticeTeleop extends LinearOpMode {
             }
             lastDetected = detected;
             if (gamepad1.aWasPressed()) {
-                leftKicker.setPosition(.7);
+                leftKicker.setPosition(.3);
                 sleep(800);
-                leftKicker.setPosition(1);
+                leftKicker.setPosition(.01);
             }
             Indexer.setTargetPosition(TargetPosition);
             turret.setTargetPosition(turretTargetPosition);

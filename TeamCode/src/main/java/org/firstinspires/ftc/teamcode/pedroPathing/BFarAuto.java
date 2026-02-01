@@ -88,12 +88,12 @@ public class BFarAuto extends OpMode {
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER, flyhweelconts);
         // servos
         pitch.setPosition(0);
-        leftKicker.setPosition(1);
+        leftKicker.setPosition(.01);
         // turret setup
         Turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        Turret.setTargetPosition(610);
+        Turret.setTargetPosition(650);
         Turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        Indexer.setPositionPIDFCoefficients(13);
+        Indexer.setPositionPIDFCoefficients(18);
         Indexer.setTargetPositionTolerance(1);
         Turret.setPower(1);
 
@@ -180,14 +180,14 @@ public class BFarAuto extends OpMode {
             Path6 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 60.000)))
+                            new BezierLine(new Pose(48.000, 8.000), new Pose(48.000, 40.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))
                     .build();
 
             Path7 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(48.000, 60.000), new Pose(36.000, 60.000)))
+                            new BezierLine(new Pose(48.000, 60.000), new Pose(36.000, 40.000)))
                     .setTangentHeadingInterpolation()
                     .build();
 
@@ -228,14 +228,15 @@ public class BFarAuto extends OpMode {
                     shotsTriggered = true;
                 }
                 if (!shooter.isBusy() && shooter.getShotsRemaning() == 0) {
-                    shotsTriggered = false;
                     setPathState(1);
+                    shotsTriggered = false;
                 }
                 break;
             case 1:// in line with row 1
-                intaker.intakeBALLZ(1);
                 follower.followPath(Paths.Path1);
+                intaker.intakeBALLZ(1);
                 if (followerArivved()) {
+
                     setPathState(2);
                 }
                 break;
@@ -251,19 +252,23 @@ public class BFarAuto extends OpMode {
                 follower.followPath(Paths.Path3);
                 intaker.intakeBALLZ(1);
                 if (followerArivved()) {
-                    setPathState(4);
+                    setPathState(5);
                 }
                 break;
-            case 4://r1 b3
+            case 4://r1 b3  now gets skipped
                 follower.followPath(Paths.Path4);
                 if (followerArivved()) {
                     setPathState(5);
+                    intaker.setNumBallz(0);
                 }
                 break;
             case 5://back to shoot pos
                 follower.followPath(Paths.Path5);
                 if (followerArivved()) {
                     setPathState(6);
+                }
+                if(pathTimer.getElapsedTimeSeconds()>15){
+                    setPathState(13);
                 }
                 break;
             case 6://shoot 3 balls
@@ -275,16 +280,21 @@ public class BFarAuto extends OpMode {
                     shotsTriggered = false;
                     setPathState(7);
                 }
+                if(pathTimer.getElapsedTimeSeconds()>10){
+                    setPathState(13);
+                }
                 break;
+            //these cases get skipped not enough time
             case 7://in line with r2
                 follower.followPath(Paths.Path6);
-
+                intaker.intakeBALLZ(1);
                 if (followerArivved()) {
-                    setPathState(13);
+                    setPathState(13);//set to end in line with r2
                 }
                 break;
             case 8://r2 b1
                 follower.followPath(Paths.Path7);
+                intaker.intakeBALLZ(1);
                 if (followerArivved()) {
                     setPathState(9);
                 }
@@ -292,16 +302,16 @@ public class BFarAuto extends OpMode {
 
             case 9://r2 b2
                 follower.followPath(Paths.Path8);
-
+                intaker.intakeBALLZ(1);
                 if (followerArivved()) {
                     setPathState(10);
                 }
                 break;
             case 10://r2 b3
                 follower.followPath(Paths.Path9);
-
                 if (followerArivved()) {
                     setPathState(11);
+                    intaker.setNumBallz(0);
                 }
                 break;
             case 11:// back to shoot pos
@@ -319,14 +329,14 @@ public class BFarAuto extends OpMode {
                     shotsTriggered = false;
                     setPathState(7);
                 }
+                //path resumes
             case 13:// ranking points
-                terminateOpModeNow();
+                Indexer.setTargetPosition(0);
+                if(!Indexer.isBusy()){
+                    terminateOpModeNow();}
                 //follower.followPath(Paths.Path11);
-        }
 
-        // Add your state machine Here
-        // Access paths with paths.pathName
-        // Refer to the Pedro Pathing Docs (Auto Example) for an example state machine
+        }
         return pathState;
     }
 

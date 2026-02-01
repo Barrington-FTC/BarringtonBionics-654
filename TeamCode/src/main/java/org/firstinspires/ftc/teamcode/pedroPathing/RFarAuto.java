@@ -82,7 +82,6 @@ public class RFarAuto extends OpMode {
         paths = new Paths(follower); // Build paths
         pitch = hardwareMap.get(Servo.class, "Pitch");
         Turret = hardwareMap.get(DcMotorEx.class, "turret");
-        // Indexer = hardwareMap.get(DcMotorEx.class, "Indexer"); // Removed duplicate
         leftKicker = hardwareMap.get(Servo.class, "leftKicker");
         Flywheel = hardwareMap.get(DcMotorEx.class, "Flywheel");
 
@@ -92,17 +91,18 @@ public class RFarAuto extends OpMode {
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER, flyhweelconts);
         // servos
         pitch.setPosition(0);
-        leftKicker.setPosition(1);
+        leftKicker.setPosition(.01);
         // turret setup
         Turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        Turret.setTargetPosition(422);
+        Turret.setTargetPosition(430);
         Turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        Indexer.setPositionPIDFCoefficients(14);
+        Indexer.setPositionPIDFCoefficients(18);
         Indexer.setTargetPositionTolerance(1);
         Turret.setPower(1);
 
         panelsTelemetry.debug("Status", "Initialized");
         panelsTelemetry.update(telemetry);
+
     }
 
     @Override
@@ -184,7 +184,7 @@ public class RFarAuto extends OpMode {
             Path6 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(96.000, 8.000), new Pose(96.000, 60.000)))
+                            new BezierLine(new Pose(96.000, 8.000), new Pose(96.000, 40.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(0))
                     .build();
 
@@ -227,9 +227,9 @@ public class RFarAuto extends OpMode {
     public int autonomousPathUpdate() {
         switch (pathState) {
             case 0:// preload
-                if (!shotsTriggered && Flywheel.getVelocity()>1390) {
-                    shooter.fireShots(3);
-                    shotsTriggered = true;
+                if (!shotsTriggered) {
+                        shooter.fireShots(3);
+                        shotsTriggered = true;
                 }
                 if (!shooter.isBusy() && shooter.getShotsRemaning() == 0) {
                     shotsTriggered = false;
@@ -237,8 +237,8 @@ public class RFarAuto extends OpMode {
                 }
                 break;
             case 1:// in line with row 1
-                intaker.intakeBALLZ(1);
                 follower.followPath(Paths.Path1);
+                intaker.intakeBALLZ(1);
                 if (followerArivved()) {
                     setPathState(2);
                 }
@@ -270,6 +270,9 @@ public class RFarAuto extends OpMode {
                 if (followerArivved()) {
                     setPathState(6);
                 }
+                if(pathTimer.getElapsedTimeSeconds()>15){
+                    setPathState(7);
+                }
                 break;
             case 6://shoot 3 balls
                 if (!shotsTriggered) {
@@ -280,7 +283,11 @@ public class RFarAuto extends OpMode {
                     shotsTriggered = false;
                     setPathState(7);
                 }
+                if(pathTimer.getElapsedTimeSeconds()>10){
+                    setPathState(7);
+                }
                 break;
+                //these cases get skipped not enough time
             case 7://in line with r2
                 follower.followPath(Paths.Path6);
                 intaker.intakeBALLZ(1);
@@ -325,15 +332,12 @@ public class RFarAuto extends OpMode {
                     shotsTriggered = false;
                     setPathState(7);
                 }
+                //path resumes
             case 13:// ranking points
-                terminateOpModeNow();
-                //follower.followPath(Paths.Path11);
-
+                Indexer.setTargetPosition(0);
+                if(!Indexer.isBusy()){
+                terminateOpModeNow();}
         }
-
-        // Add your state machine Here
-        // Access paths with paths.pathName
-        // Refer to the Pedro Pathing Docs (Auto Example) for an example state machine
         return pathState;
     }
 
