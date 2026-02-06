@@ -21,7 +21,7 @@ public class Constants {
             .lateralZeroPowerAcceleration(-300);
 
     public static MecanumConstants driveConstants = new MecanumConstants()
-            .maxPower(1.1)
+            .maxPower(1)
             .rightFrontMotorName("rightFrontDrive")
             .rightRearMotorName("rightBackDrive")
             .leftRearMotorName("leftBackDrive")

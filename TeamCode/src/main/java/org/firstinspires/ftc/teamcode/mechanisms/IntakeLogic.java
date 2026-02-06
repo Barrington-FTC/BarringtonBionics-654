@@ -64,7 +64,7 @@ public class IntakeLogic {
                 break;
             case INDEX:
                 Indexer.setTargetPosition(INTAKE_TARGET);
-                if(stateTimer.seconds() >= .9) {
+                if(stateTimer.seconds() >= .5) {
                     intakeCount--;
                     stateTimer.reset();
                     IntakeState = IntakeState.IDLE;

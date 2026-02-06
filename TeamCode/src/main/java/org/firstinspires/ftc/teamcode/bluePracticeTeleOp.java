@@ -100,7 +100,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
     public boolean detected;
     public boolean lastDetected;
 
-    Pose2D currentPose = new Pose2D(DistanceUnit.INCH,48, 8, AngleUnit.DEGREES,90);//used to save position after autonomous
+    Pose2D currentPose = new Pose2D(DistanceUnit.INCH,48, 6.424, AngleUnit.DEGREES,90);//used to save position after autonomous
     boolean autoIntake = false;
     private double distanceToTarget;
     private double targetx = 0;
