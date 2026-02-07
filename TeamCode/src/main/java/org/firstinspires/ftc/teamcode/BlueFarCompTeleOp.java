@@ -20,7 +20,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 
 @Config
-@TeleOp(name = "blue far Comp teleop")
+@TeleOp(name = "AABlue Far Comp TeleOp")
 public class BlueFarCompTeleOp extends LinearOpMode {
     // Dc Motor dec
     private DcMotor leftFrontDrive = null;
@@ -38,6 +38,7 @@ public class BlueFarCompTeleOp extends LinearOpMode {
     Limelight3A limelight;
     private DigitalChannel laserInput;
     private GoBildaPinpointDriver pinpoint = null;
+    private Servo indicatorLight;
     // Constants
     // indexer
 
@@ -57,14 +58,17 @@ public class BlueFarCompTeleOp extends LinearOpMode {
 
     static double TargetX = 0;// find this
 
+
     public static double VF = 0;
     int targetID = 0;
     double tx = 0;
     double ty = 0;
+
     double ta = 0;
     private int offset = 0;
     private final int turretmaxl = 1087;
     private final int turretmaxr = 0;
+
 
     private double x = 0;
     private double y = 0;
@@ -75,7 +79,7 @@ public class BlueFarCompTeleOp extends LinearOpMode {
     Pose2D currentPose = new Pose2D(DistanceUnit.INCH,savedPosition.getX(), savedPosition.getY(), AngleUnit.RADIANS,savedPosition.getHeading());//used to save position after autonomous
     boolean autoIntake = false;
     private double distanceToTarget;
-    private double targetx = 0;
+    private double targetx = 4;
     private double targety = 144;
     private double xV;
     private double yV;
@@ -86,18 +90,11 @@ public class BlueFarCompTeleOp extends LinearOpMode {
     private double TURRET_TICKS_PER_RADIAN = 537.7/(Math.PI*2);
 
     private int turretTargetPosition = 0;
-    private double inpower;
-
-    private double kp = 0;
-
-    private double kf = 0;
-
-    private double amount = 1;
-    FlywheelPIDController pids = null;
 
     @Override
     public void runOpMode() {
         laserInput = hardwareMap.get(DigitalChannel.class, "laserInput");
+        indicatorLight = hardwareMap.get(Servo.class, "indicator");
 
         // Lime Light
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
@@ -128,7 +125,7 @@ public class BlueFarCompTeleOp extends LinearOpMode {
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
         turret.setDirection(DcMotor.Direction.FORWARD);
-        Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        Flywheel.setDirection(DcMotorSimple.Direction.FORWARD);
         Flywheel.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         leftKicker.setDirection(Servo.Direction.FORWARD);
         rightKicker.setDirection(Servo.Direction.FORWARD);
@@ -137,6 +134,7 @@ public class BlueFarCompTeleOp extends LinearOpMode {
         setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         Indexer.setDirection(DcMotorSimple.Direction.FORWARD);
+        Indexer.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         Indexer.setTargetPosition(TargetPosition);
         Indexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         Indexer.setPositionPIDFCoefficients(10);
@@ -146,7 +144,6 @@ public class BlueFarCompTeleOp extends LinearOpMode {
         turret.setPower(-.5);
         sleep(2000);
         turret.setPower(0);
-        turret.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turret.setTargetPosition(0);
         turret.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         turret.setPositionPIDFCoefficients(20);
@@ -155,7 +152,6 @@ public class BlueFarCompTeleOp extends LinearOpMode {
         laserInput.setMode(DigitalChannel.Mode.INPUT);
         Intake = hardwareMap.get(DcMotor.class, "Intake");
         Intake.setDirection(DcMotorSimple.Direction.REVERSE);
-
         leftKicker.setPosition(.01);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
@@ -163,11 +159,7 @@ public class BlueFarCompTeleOp extends LinearOpMode {
         PIDFCoefficients flyhweelconts = new PIDFCoefficients(700,0,0,17);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
         Thread KickerThread = new Thread(this::Operations);
-
-
         waitForStart();
-
-
         KickerThread.start();
 
         while (opModeIsActive()) { // Loop
@@ -196,6 +188,13 @@ public class BlueFarCompTeleOp extends LinearOpMode {
             // Clamp the target position to within the physical limits of the turret
             turretTargetPosition = Math.max(turretmaxr,
                     Math.min(turretmaxl, turretTargetPosition));
+            if(Indexer.getCurrentPosition() == BallOneShoot || Indexer.getCurrentPosition() == BallTwoShoot || Indexer.getCurrentPosition() == ballThreeShoot){
+                gamepad1.rumble(1,1,500);
+                indicatorLight.setPosition(.5);
+            }
+            else{
+                indicatorLight.setPosition(0);
+            }
 
 
             // --------------------------- WHEELS --------------------------- //
@@ -232,13 +231,27 @@ public class BlueFarCompTeleOp extends LinearOpMode {
             rightBackDrive.setPower(rightBackPower);
 
             //debug
-
             if(gamepad2.leftBumperWasPressed()){
                 offset+=5;
             }
             if(gamepad2.rightBumperWasPressed()){
                 offset-=5;
             }
+            if(gamepad2.xWasPressed()){
+                pinpoint.setHeading(90,AngleUnit.DEGREES);
+            }
+            if(gamepad2.dpadLeftWasPressed()){
+                TargetPosition+=5;
+            }
+            if(gamepad2.dpadRightWasPressed()){
+                TargetPosition-=5;
+            }
+            if(gamepad2.bWasPressed()){
+                Indexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                Indexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            }
+
+
 
             // Intake
             if (gamepad1.right_trigger > 0.01) {
@@ -277,7 +290,6 @@ public class BlueFarCompTeleOp extends LinearOpMode {
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f",
                     leftBackDrive.getPower(), rightBackDrive.getPower());
             telemetry.addData("Indexer power", Indexer.getPower());
-            telemetry.addData("Indexer power", inpower);
             telemetry.addData("Indexer Position", "%d",
                     Indexer.getCurrentPosition());
             telemetry.addData("Indexer Target Position", "%d",
@@ -289,6 +301,9 @@ public class BlueFarCompTeleOp extends LinearOpMode {
             telemetry.addData("distance to target",distanceToTarget);
             telemetry.addData("Target Turret", turretTargetPosition);
             telemetry.addData("Turret pos", turret.getCurrentPosition());
+            telemetry.addData("Ball one pos", ballOneIntake);
+            telemetry.addData("Ball two pos ", ballTwoIntake);
+            telemetry.addData("Ball three pos", ballThreeIntake);
             telemetry.addData("Flywheel Target RPM", VF);
             telemetry.addData("distance", TargetX);
             telemetry.addData("ty", ty);
@@ -297,6 +312,14 @@ public class BlueFarCompTeleOp extends LinearOpMode {
             telemetry.addData("ll status", limelight.isConnected());
             telemetry.update();
         }
+    }
+
+    public void PinpointLoop(){
+        while (opModeIsActive()) {
+            pinpoint.update();
+            sleep(50);
+        }
+
     }
     public void Calculate(double dih){
         if(dih<50){
@@ -407,20 +430,17 @@ public class BlueFarCompTeleOp extends LinearOpMode {
         while (opModeIsActive()) {
             detected = laserInput.getState();
             if (lastDetected && !detected) {
-                sleep(800);
+                sleep(1000);
                 intake();
             }
             lastDetected = detected;
             if (gamepad1.aWasPressed()) {
-                leftKicker.setPosition(.001);
-                sleep(800);
                 leftKicker.setPosition(.3);
+                sleep(800);
+                leftKicker.setPosition(.01);
             }
             Indexer.setTargetPosition(TargetPosition);
             turret.setTargetPosition(turretTargetPosition);
-            if(Indexer.getCurrentPosition() == TargetPosition){
-                gamepad1.rumble(100);
-            }
             Flywheel.setVelocity(VF);
             sleep(70);
         }

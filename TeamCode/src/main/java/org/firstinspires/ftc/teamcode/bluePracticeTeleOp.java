@@ -20,7 +20,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 
 @Config
-@TeleOp(name = "blue far practice teleop")
+@TeleOp(name = "red far practice")
 public class bluePracticeTeleOp extends LinearOpMode {
     // Dc Motor dec
     private DcMotor leftFrontDrive = null;
@@ -38,6 +38,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
     Limelight3A limelight;
     private DigitalChannel laserInput;
     private GoBildaPinpointDriver pinpoint = null;
+    private Servo indicatorLight;
     // Constants
     // indexer
 
@@ -52,34 +53,11 @@ public class bluePracticeTeleOp extends LinearOpMode {
     int ballThreeIntake = ballTwoIntake + 180;
 
     int TargetPosition = ballOneIntake;
-    int[] ordera = { 2, 1, 1 };
-    int[] orderb = { 1, 2, 1 };
-    int[] orderc = { 1, 1, 2 };
-    int[] targetOrder = orderc;
-    int ballOneColor = 0;// 0 acts as null 1 is purple 2 is green
-    int ballTwoColor = 0;// 0 acts as null 1 is purple 2 is green
-    int ballThreeColor = 0;// 0 acts as null 1 is purple 2 is green
-
-    boolean ballOneCounted = false;
-    boolean ballTwoCounted = false;
-    boolean ballThreeCounted = false;
-
-    boolean purple = false;
-    boolean green = false;
-    int[] ballColorArray = { ballOneColor, ballTwoColor, ballThreeColor };
     boolean lastintake = true;
     // constants for indexer
-    private ColorSensorV3 colorSensor;
-
-    // declared like this so if motors are swapped I only have to find one value
-    private PIDControllerRyan indexerPID = null;
-    private PIDControllerRyan turretPID = null;
-    private PIDTuner pidTuner = null;
-
 
     static double TargetX = 0;// find this
 
-    double TargetAngle = 0;
 
     public static double VF = 0;
     int targetID = 0;
@@ -92,8 +70,6 @@ public class bluePracticeTeleOp extends LinearOpMode {
     private final int turretmaxr = 0 + offset;
 
 
-    private double tpr = 537.7;
-
     private double x = 0;
     private double y = 0;
     private double heading = 0;
@@ -103,7 +79,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
     Pose2D currentPose = new Pose2D(DistanceUnit.INCH,48, 6.424, AngleUnit.DEGREES,90);//used to save position after autonomous
     boolean autoIntake = false;
     private double distanceToTarget;
-    private double targetx = 0;
+    private double targetx = 4;
     private double targety = 144;
     private double xV;
     private double yV;
@@ -114,19 +90,11 @@ public class bluePracticeTeleOp extends LinearOpMode {
     private double TURRET_TICKS_PER_RADIAN = 537.7/(Math.PI*2);
 
     private int turretTargetPosition = 0;
-    private double inpower;
-
-    private double kp = 0;
-
-    private double kf = 0;
-
-    private double amount = 1;
-    FlywheelPIDController pids = null;
 
     @Override
     public void runOpMode() {
         laserInput = hardwareMap.get(DigitalChannel.class, "laserInput");
-
+        indicatorLight = hardwareMap.get(Servo.class, "indicator");
         // Lime Light
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(50); // This sets how often we ask Limelight for data (100 times per second)
@@ -156,7 +124,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
         turret.setDirection(DcMotor.Direction.FORWARD);
-        Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        Flywheel.setDirection(DcMotorSimple.Direction.FORWARD);
         Flywheel.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         leftKicker.setDirection(Servo.Direction.FORWARD);
         rightKicker.setDirection(Servo.Direction.FORWARD);
@@ -184,7 +152,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
         laserInput.setMode(DigitalChannel.Mode.INPUT);
         Intake = hardwareMap.get(DcMotor.class, "Intake");
         Intake.setDirection(DcMotorSimple.Direction.REVERSE);
-        leftKicker.setPosition(0.01);
+        leftKicker.setPosition(.01);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -224,8 +192,13 @@ public class bluePracticeTeleOp extends LinearOpMode {
             // Clamp the target position to within the physical limits of the turret
             turretTargetPosition = Math.max(turretmaxr,
                     Math.min(turretmaxl, turretTargetPosition));
-
-
+            if(Indexer.getCurrentPosition() == BallOneShoot || Indexer.getCurrentPosition() == BallTwoShoot || Indexer.getCurrentPosition() == ballThreeShoot){
+                gamepad1.rumble(1,1,500);
+                indicatorLight.setPosition(.5);
+            }
+            else{
+                indicatorLight.setPosition(0);
+            }
             // --------------------------- WHEELS --------------------------- //
             // POV Mode uses left joystick to go forward & strafe, and right joystick to
             // rotate.
@@ -284,11 +257,26 @@ public class bluePracticeTeleOp extends LinearOpMode {
             else{
                 Pitch.setPosition(1);
             }
+
+            //debug
             if(gamepad2.leftBumperWasPressed()){
                 offset+=5;
             }
             if(gamepad2.rightBumperWasPressed()){
                 offset-=5;
+            }
+            if(gamepad2.xWasPressed()){
+                pinpoint.setHeading(90,AngleUnit.DEGREES);
+            }
+            if(gamepad2.dpadLeftWasPressed()){
+                TargetPosition+=5;
+            }
+            if(gamepad2.dpadRightWasPressed()){
+                TargetPosition-=5;
+            }
+            if(gamepad2.bWasPressed()){
+                Indexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                Indexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
 
 
@@ -302,7 +290,6 @@ public class bluePracticeTeleOp extends LinearOpMode {
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f",
                     leftBackDrive.getPower(), rightBackDrive.getPower());
             telemetry.addData("Indexer power", Indexer.getPower());
-            telemetry.addData("Indexer power", inpower);
             telemetry.addData("Indexer Position", "%d",
                     Indexer.getCurrentPosition());
             telemetry.addData("Indexer Target Position", "%d",
@@ -317,9 +304,6 @@ public class bluePracticeTeleOp extends LinearOpMode {
             telemetry.addData("Ball one pos", ballOneIntake);
             telemetry.addData("Ball two pos ", ballTwoIntake);
             telemetry.addData("Ball three pos", ballThreeIntake);
-            telemetry.addData("Current Order", targetOrder[0]);
-            telemetry.addData("Current Order", targetOrder[1]);
-            telemetry.addData("Current Order", targetOrder[2]);
             telemetry.addData("Flywheel Target RPM", VF);
             telemetry.addData("distance", TargetX);
             telemetry.addData("ty", ty);

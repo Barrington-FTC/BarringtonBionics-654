@@ -38,6 +38,7 @@ public class redPracticeTeleop extends LinearOpMode {
     Limelight3A limelight;
     private DigitalChannel laserInput;
     private GoBildaPinpointDriver pinpoint = null;
+    private Servo indicatorLight;
     // Constants
     // indexer
 
@@ -78,7 +79,7 @@ public class redPracticeTeleop extends LinearOpMode {
     Pose2D currentPose = new Pose2D(DistanceUnit.INCH,96, 6.424, AngleUnit.DEGREES,90);//used to save position after autonomous
     boolean autoIntake = false;
     private double distanceToTarget;
-    private double targetx = 144;
+    private double targetx = 140;
     private double targety = 144;
     private double xV;
     private double yV;
@@ -93,6 +94,7 @@ public class redPracticeTeleop extends LinearOpMode {
     @Override
     public void runOpMode() {
         laserInput = hardwareMap.get(DigitalChannel.class, "laserInput");
+        indicatorLight = hardwareMap.get(Servo.class, "indicator");
 
         // Lime Light
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
@@ -123,7 +125,7 @@ public class redPracticeTeleop extends LinearOpMode {
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
         turret.setDirection(DcMotor.Direction.FORWARD);
-        Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        Flywheel.setDirection(DcMotorSimple.Direction.FORWARD);
         Flywheel.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         leftKicker.setDirection(Servo.Direction.FORWARD);
         rightKicker.setDirection(Servo.Direction.FORWARD);
@@ -191,7 +193,13 @@ public class redPracticeTeleop extends LinearOpMode {
             // Clamp the target position to within the physical limits of the turret
             turretTargetPosition = Math.max(turretmaxr,
                     Math.min(turretmaxl, turretTargetPosition));
-
+            if(Indexer.getCurrentPosition() == BallOneShoot || Indexer.getCurrentPosition() == BallTwoShoot || Indexer.getCurrentPosition() == ballThreeShoot){
+                gamepad1.rumble(1,1,500);
+                indicatorLight.setPosition(.5);
+            }
+            else{
+                indicatorLight.setPosition(0);
+            }
 
             // --------------------------- WHEELS --------------------------- //
             // POV Mode uses left joystick to go forward & strafe, and right joystick to
@@ -251,11 +259,26 @@ public class redPracticeTeleop extends LinearOpMode {
             else{
                 Pitch.setPosition(1);
             }
+
+            //debug
             if(gamepad2.leftBumperWasPressed()){
                 offset+=5;
             }
             if(gamepad2.rightBumperWasPressed()){
                 offset-=5;
+            }
+            if(gamepad2.xWasPressed()){
+                pinpoint.setHeading(90,AngleUnit.DEGREES);
+            }
+            if(gamepad2.dpadLeftWasPressed()){
+                TargetPosition+=5;
+            }
+            if(gamepad2.dpadRightWasPressed()){
+                TargetPosition-=5;
+            }
+            if(gamepad2.bWasPressed()){
+                Indexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                Indexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
 
 
