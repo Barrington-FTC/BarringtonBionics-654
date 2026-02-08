@@ -52,7 +52,7 @@ public class flyWheelLogic {
         Indexer = index;
         leftKicker = hwMap.get(Servo.class, "leftKicker");
         Flywheel = hwMap.get(DcMotorEx.class, "Flywheel");
-        Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        Flywheel.setDirection(DcMotorSimple.Direction.FORWARD);
         PIDFCoefficients flyhweelconts = new PIDFCoefficients(700, 0, 0, 17);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER, flyhweelconts);
 

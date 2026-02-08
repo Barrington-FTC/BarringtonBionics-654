@@ -32,13 +32,12 @@ public class redPracticeTeleop extends LinearOpMode {
     private DcMotorEx Flywheel = null;
     private DcMotorEx turret = null;
     private Servo leftKicker = null;
-    private Servo rightKicker = null;
 
     private Servo Pitch = null;
     Limelight3A limelight;
     private DigitalChannel laserInput;
     private GoBildaPinpointDriver pinpoint = null;
-    private Servo indicatorLight;
+    private Servo indihcator;
     // Constants
     // indexer
 
@@ -90,11 +89,14 @@ public class redPracticeTeleop extends LinearOpMode {
     private double TURRET_TICKS_PER_RADIAN = 537.7/(Math.PI*2);
 
     private int turretTargetPosition = 0;
+    private double amount = 1;
+    private double kp = 6.95;
+    private double kf = .7;
 
     @Override
     public void runOpMode() {
         laserInput = hardwareMap.get(DigitalChannel.class, "laserInput");
-        indicatorLight = hardwareMap.get(Servo.class, "indicator");
+        indihcator = hardwareMap.get(Servo.class, "indicatorLight");
 
         // Lime Light
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
@@ -119,7 +121,6 @@ public class redPracticeTeleop extends LinearOpMode {
         Flywheel = hardwareMap.get(DcMotorEx.class, "Flywheel");
         turret = hardwareMap.get(DcMotorEx.class, "turret");
         leftKicker = hardwareMap.get(Servo.class, "leftKicker");
-        rightKicker = hardwareMap.get(Servo.class, "rightKicker");
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
@@ -128,7 +129,6 @@ public class redPracticeTeleop extends LinearOpMode {
         Flywheel.setDirection(DcMotorSimple.Direction.FORWARD);
         Flywheel.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         leftKicker.setDirection(Servo.Direction.FORWARD);
-        rightKicker.setDirection(Servo.Direction.FORWARD);
         Pitch = hardwareMap.get(Servo.class, "Pitch");
         leftKicker.setDirection(Servo.Direction.FORWARD);// 0 is min angle 1 is max angle
         setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -137,7 +137,7 @@ public class redPracticeTeleop extends LinearOpMode {
         Indexer.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         Indexer.setTargetPosition(TargetPosition);
         Indexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        Indexer.setPositionPIDFCoefficients(10);
+        Indexer.setPositionPIDFCoefficients(15);
         Indexer.setPower(1);
 
         turret.setDirection(DcMotor.Direction.FORWARD);
@@ -157,13 +157,15 @@ public class redPracticeTeleop extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
         telemetry.update();
-        PIDFCoefficients flyhweelconts = new PIDFCoefficients(700,0,0,17);
+        PIDFCoefficients flyhweelconts = new PIDFCoefficients(6.95,0,0,.7);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
         Thread KickerThread = new Thread(this::Operations);
 
 
         waitForStart();
-
+        pinpoint.resetPosAndIMU();
+        pinpoint.recalibrateIMU();
+        pinpoint.setPosition(currentPose);
 
         KickerThread.start();
 
@@ -173,7 +175,7 @@ public class redPracticeTeleop extends LinearOpMode {
             y = pinpoint.getPosition().getY(DistanceUnit.INCH);
             heading = pinpoint.getHeading(AngleUnit.RADIANS);
             distanceToTarget = Math.sqrt(Math.pow(x - targetx, 2) + Math.pow(y - targety, 2));
-            Calculate(distanceToTarget);
+            //Calculate(distanceToTarget);
             xV = pinpoint.getVelX(DistanceUnit.INCH);
             yV = pinpoint.getVelY(DistanceUnit.INCH);
             netV = Math.sqrt(Math.pow(xV, 2) + Math.pow(yV, 2));
@@ -195,10 +197,6 @@ public class redPracticeTeleop extends LinearOpMode {
                     Math.min(turretmaxl, turretTargetPosition));
             if(Indexer.getCurrentPosition() == BallOneShoot || Indexer.getCurrentPosition() == BallTwoShoot || Indexer.getCurrentPosition() == ballThreeShoot){
                 gamepad1.rumble(1,1,500);
-                indicatorLight.setPosition(.5);
-            }
-            else{
-                indicatorLight.setPosition(0);
             }
 
             // --------------------------- WHEELS --------------------------- //
@@ -240,6 +238,7 @@ public class redPracticeTeleop extends LinearOpMode {
             } else {
                 Intake.setPower(0);
             }
+
             if (gamepad1.dpadUpWasPressed()) {
                 intake();
             }
@@ -253,12 +252,8 @@ public class redPracticeTeleop extends LinearOpMode {
             if (gamepad1.dpadDownWasPressed()) {
                 reverseShoot();
             }
-            if(distanceToTarget>125){
-                Pitch.setPosition(0);
-            }
-            else{
-                Pitch.setPosition(1);
-            }
+
+
 
             //debug
             if(gamepad2.leftBumperWasPressed()){
@@ -280,6 +275,26 @@ public class redPracticeTeleop extends LinearOpMode {
                 Indexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
                 Indexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
+            if(distanceToTarget>125){
+                Pitch.setPosition(0);
+            }
+            else{
+                Pitch.setPosition(1);
+            }
+
+
+            /*
+            if(gamepad1.dpadRightWasPressed()){
+                kf+=amount;
+            }
+            if(gamepad1.dpadLeftWasPressed()){
+                kf-=amount;
+            }
+
+            flyhweelconts = new PIDFCoefficients(kp,0,0,kf);
+            Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
+
+             */
 
 
 
@@ -297,6 +312,11 @@ public class redPracticeTeleop extends LinearOpMode {
             telemetry.addData("Indexer Target Position", "%d",
                     TargetPosition);
             // colorSensor.addTelemetry();
+            telemetry.addData("kp", kp);
+            telemetry.addData("kf", kf);
+            telemetry.addData("amount", amount);
+            telemetry.addData("Actual velocity", Flywheel.getVelocity());
+            telemetry.addData("Flywheel Target RPM", VF);
             telemetry.addData("x", x);
             telemetry.addData("y", y);
             telemetry.addData("H", heading);
@@ -308,30 +328,16 @@ public class redPracticeTeleop extends LinearOpMode {
             telemetry.addData("Ball three pos", ballThreeIntake);
             telemetry.addData("Flywheel Target RPM", VF);
             telemetry.addData("distance", TargetX);
-            telemetry.addData("ty", ty);
-            telemetry.addData("tx", tx);
-            telemetry.addData("ta", ta);
             telemetry.addData("ll status", limelight.isConnected());
             telemetry.update();
         }
     }
-
-    public void PinpointLoop(){
-        while (opModeIsActive()) {
-            pinpoint.update();
-            sleep(50);
-        }
-
-    }
     public void Calculate(double dih){
-        if(dih<50){
-            VF=1000;
-        }
-        else if(dih<120){
-            VF= 4.95027*dih+670.39441;
+        if(dih<112){
+            VF= 6.05505* dih +791.2844;
         }
         else{
-            VF = 4.96245*dih+684.17756;
+            VF = y=6.80133*dih+818.13451;
         }
     }
     private void intake(){
@@ -430,11 +436,14 @@ public class redPracticeTeleop extends LinearOpMode {
 
     private void Operations() {
         while (opModeIsActive()) {
+            /*
             detected = laserInput.getState();
             if (lastDetected && !detected) {
                 sleep(1000);
                 intake();
             }
+
+             */
             lastDetected = detected;
             if (gamepad1.aWasPressed()) {
                 leftKicker.setPosition(.3);

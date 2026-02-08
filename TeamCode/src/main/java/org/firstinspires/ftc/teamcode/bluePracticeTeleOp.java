@@ -20,7 +20,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 
 @Config
-@TeleOp(name = "red far practice")
+@TeleOp(name = "blue far practice")
 public class bluePracticeTeleOp extends LinearOpMode {
     // Dc Motor dec
     private DcMotor leftFrontDrive = null;
@@ -76,7 +76,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
     public boolean detected;
     public boolean lastDetected;
 
-    Pose2D currentPose = new Pose2D(DistanceUnit.INCH,48, 6.424, AngleUnit.DEGREES,90);//used to save position after autonomous
+    Pose2D currentPose = new Pose2D(DistanceUnit.INCH,48, 8, AngleUnit.DEGREES,90);//used to save position after autonomous
     boolean autoIntake = false;
     private double distanceToTarget;
     private double targetx = 4;
@@ -94,7 +94,6 @@ public class bluePracticeTeleOp extends LinearOpMode {
     @Override
     public void runOpMode() {
         laserInput = hardwareMap.get(DigitalChannel.class, "laserInput");
-        indicatorLight = hardwareMap.get(Servo.class, "indicator");
         // Lime Light
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(50); // This sets how often we ask Limelight for data (100 times per second)
@@ -118,7 +117,6 @@ public class bluePracticeTeleOp extends LinearOpMode {
         Flywheel = hardwareMap.get(DcMotorEx.class, "Flywheel");
         turret = hardwareMap.get(DcMotorEx.class, "turret");
         leftKicker = hardwareMap.get(Servo.class, "leftKicker");
-        rightKicker = hardwareMap.get(Servo.class, "rightKicker");
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
@@ -127,7 +125,6 @@ public class bluePracticeTeleOp extends LinearOpMode {
         Flywheel.setDirection(DcMotorSimple.Direction.FORWARD);
         Flywheel.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         leftKicker.setDirection(Servo.Direction.FORWARD);
-        rightKicker.setDirection(Servo.Direction.FORWARD);
         Pitch = hardwareMap.get(Servo.class, "Pitch");
         leftKicker.setDirection(Servo.Direction.FORWARD);// 0 is min angle 1 is max angle
         setDriveMotorsZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -156,14 +153,15 @@ public class bluePracticeTeleOp extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
         telemetry.update();
-        PIDFCoefficients flyhweelconts = new PIDFCoefficients(700,0,0,17);
+        PIDFCoefficients flyhweelconts = new PIDFCoefficients(6.95,0,0,.7);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
         Thread KickerThread = new Thread(this::Operations);
 
 
         waitForStart();
-
-
+        pinpoint.resetPosAndIMU();
+        pinpoint.recalibrateIMU();
+        pinpoint.setPosition(currentPose);
         KickerThread.start();
 
         while (opModeIsActive()) { // Loop
@@ -194,10 +192,6 @@ public class bluePracticeTeleOp extends LinearOpMode {
                     Math.min(turretmaxl, turretTargetPosition));
             if(Indexer.getCurrentPosition() == BallOneShoot || Indexer.getCurrentPosition() == BallTwoShoot || Indexer.getCurrentPosition() == ballThreeShoot){
                 gamepad1.rumble(1,1,500);
-                indicatorLight.setPosition(.5);
-            }
-            else{
-                indicatorLight.setPosition(0);
             }
             // --------------------------- WHEELS --------------------------- //
             // POV Mode uses left joystick to go forward & strafe, and right joystick to
@@ -278,6 +272,9 @@ public class bluePracticeTeleOp extends LinearOpMode {
                 Indexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
                 Indexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
+            Indexer.setTargetPosition(TargetPosition);
+            turret.setTargetPosition(turretTargetPosition);
+            Flywheel.setVelocity(VF);
 
 
 
@@ -322,14 +319,11 @@ public class bluePracticeTeleOp extends LinearOpMode {
 
     }
     public void Calculate(double dih){
-        if(dih<50){
-            VF=1000;
-        }
-        else if(dih<120){
-            VF= 4.95027*dih+670.39441;
+        if(dih<112){
+            VF= 6.05505* dih +780.2844;
         }
         else{
-            VF = 4.96245*dih+684.17756;
+            VF = y=6.80133*dih+818.13451;
         }
     }
     private void intake(){
@@ -422,26 +416,13 @@ public class bluePracticeTeleOp extends LinearOpMode {
             }
         }
     }
-    // Dedicated method for the Limlight;
-
-
-
     private void Operations() {
         while (opModeIsActive()) {
-            detected = laserInput.getState();
-            if (lastDetected && !detected) {
-                sleep(1000);
-                intake();
-            }
-            lastDetected = detected;
             if (gamepad1.aWasPressed()) {
                 leftKicker.setPosition(.3);
                 sleep(800);
                 leftKicker.setPosition(.01);
             }
-            Indexer.setTargetPosition(TargetPosition);
-            turret.setTargetPosition(turretTargetPosition);
-            Flywheel.setVelocity(VF);
             sleep(70);
         }
     }

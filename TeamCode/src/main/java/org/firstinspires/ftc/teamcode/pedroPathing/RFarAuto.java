@@ -86,8 +86,8 @@ public class RFarAuto extends OpMode {
         Flywheel = hardwareMap.get(DcMotorEx.class, "Flywheel");
 
         // flywheel
-        Flywheel.setDirection(DcMotorSimple.Direction.REVERSE);
-        PIDFCoefficients flyhweelconts = new PIDFCoefficients(700, 0, 0, 17);
+        Flywheel.setDirection(DcMotorSimple.Direction.FORWARD);
+        PIDFCoefficients flyhweelconts = new PIDFCoefficients(6.95,0,0,.7);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER, flyhweelconts);
         // servos
         pitch.setPosition(0);
