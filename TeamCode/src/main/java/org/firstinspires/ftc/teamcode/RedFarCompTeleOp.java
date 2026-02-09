@@ -224,24 +224,27 @@ public class RedFarCompTeleOp extends LinearOpMode {
             rightBackDrive.setPower(rightBackPower);
 
             //debug
+            if(gamepad2.dpadUpWasPressed()){
+                VF+=10;
+            }
+            if(gamepad2.dpadDownWasPressed()){
+                VF-=10;
+            }
             if(gamepad2.leftBumperWasPressed()){
-                offset+=5;
+                offset+=10;
             }
             if(gamepad2.rightBumperWasPressed()){
-                offset-=5;
+                offset-=10;
             }
             if(gamepad2.xWasPressed()){
                 pinpoint.setHeading(90,AngleUnit.DEGREES);
             }
             if(gamepad2.dpadLeftWasPressed()){
+
                 TargetPosition+=5;
             }
             if(gamepad2.dpadRightWasPressed()){
                 TargetPosition-=5;
-            }
-            if(gamepad2.bWasPressed()){
-                Indexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                Indexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
 
 
@@ -322,7 +325,7 @@ public class RedFarCompTeleOp extends LinearOpMode {
             VF= 6.05505* dih +791.2844;
         }
         else{
-            VF = y=6.80133*dih+818.13451;
+            VF = 6.80133*dih+818.13451;
         }
     }
     private void intake(){

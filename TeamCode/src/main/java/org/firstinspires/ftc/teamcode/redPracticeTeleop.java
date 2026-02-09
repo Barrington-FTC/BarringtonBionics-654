@@ -160,11 +160,10 @@ public class redPracticeTeleop extends LinearOpMode {
         PIDFCoefficients flyhweelconts = new PIDFCoefficients(6.95,0,0,.7);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
         Thread KickerThread = new Thread(this::Operations);
-
-
-        waitForStart();
         pinpoint.resetPosAndIMU();
         pinpoint.recalibrateIMU();
+
+        waitForStart();
         pinpoint.setPosition(currentPose);
 
         KickerThread.start();
@@ -175,7 +174,7 @@ public class redPracticeTeleop extends LinearOpMode {
             y = pinpoint.getPosition().getY(DistanceUnit.INCH);
             heading = pinpoint.getHeading(AngleUnit.RADIANS);
             distanceToTarget = Math.sqrt(Math.pow(x - targetx, 2) + Math.pow(y - targety, 2));
-            //Calculate(distanceToTarget);
+            Calculate(distanceToTarget);
             xV = pinpoint.getVelX(DistanceUnit.INCH);
             yV = pinpoint.getVelY(DistanceUnit.INCH);
             netV = Math.sqrt(Math.pow(xV, 2) + Math.pow(yV, 2));
@@ -252,15 +251,25 @@ public class redPracticeTeleop extends LinearOpMode {
             if (gamepad1.dpadDownWasPressed()) {
                 reverseShoot();
             }
-
-
+            if(gamepad2.dpadRightWasPressed()){
+                VF+=10;
+            }
+            if(gamepad2.dpadLeftWasPressed()) {
+                VF -= 10;
+            }
 
             //debug
+            if(gamepad2.dpadUpWasPressed()){
+                VF+=10;
+            }
+            if(gamepad2.dpadDownWasPressed()){
+                VF-=10;
+            }
             if(gamepad2.leftBumperWasPressed()){
-                offset+=5;
+                offset+=10;
             }
             if(gamepad2.rightBumperWasPressed()){
-                offset-=5;
+                offset-=10;
             }
             if(gamepad2.xWasPressed()){
                 pinpoint.setHeading(90,AngleUnit.DEGREES);
@@ -283,20 +292,10 @@ public class redPracticeTeleop extends LinearOpMode {
             }
 
 
-            /*
-            if(gamepad1.dpadRightWasPressed()){
-                kf+=amount;
-            }
-            if(gamepad1.dpadLeftWasPressed()){
-                kf-=amount;
-            }
 
-            flyhweelconts = new PIDFCoefficients(kp,0,0,kf);
-            Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
-
-             */
-
-
+            Indexer.setTargetPosition(TargetPosition);
+            turret.setTargetPosition(turretTargetPosition);
+            Flywheel.setVelocity(VF);
 
 
             // --------------------------- TELEMETRY --------------------------- //
@@ -334,10 +333,10 @@ public class redPracticeTeleop extends LinearOpMode {
     }
     public void Calculate(double dih){
         if(dih<112){
-            VF= 6.05505* dih +791.2844;
+            VF=5.5* dih +791.2844;
         }
         else{
-            VF = y=6.80133*dih+818.13451;
+            VF = 6.10133*dih+818.13451;
         }
     }
     private void intake(){
@@ -450,9 +449,6 @@ public class redPracticeTeleop extends LinearOpMode {
                 sleep(800);
                 leftKicker.setPosition(.01);
             }
-            Indexer.setTargetPosition(TargetPosition);
-            turret.setTargetPosition(turretTargetPosition);
-            Flywheel.setVelocity(VF);
             sleep(70);
         }
     }

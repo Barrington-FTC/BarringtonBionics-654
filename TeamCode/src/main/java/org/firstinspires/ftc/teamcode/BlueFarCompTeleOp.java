@@ -227,11 +227,17 @@ public class BlueFarCompTeleOp extends LinearOpMode {
             rightBackDrive.setPower(rightBackPower);
 
             //debug
+            if(gamepad2.dpadUpWasPressed()){
+                VF+=10;
+            }
+            if(gamepad2.dpadDownWasPressed()){
+                VF-=10;
+            }
             if(gamepad2.leftBumperWasPressed()){
-                offset+=5;
+                offset+=10;
             }
             if(gamepad2.rightBumperWasPressed()){
-                offset-=5;
+                offset-=10;
             }
             if(gamepad2.xWasPressed()){
                 pinpoint.setHeading(90,AngleUnit.DEGREES);
@@ -325,7 +331,7 @@ public class BlueFarCompTeleOp extends LinearOpMode {
             VF= 6.05505* dih +791.2844;
         }
         else{
-            VF = y=6.80133*dih+818.13451;
+            VF = 6.80133*dih+818.13451;
         }
     }
     private void intake(){

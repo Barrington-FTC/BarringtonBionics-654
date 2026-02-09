@@ -59,7 +59,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
     static double TargetX = 0;// find this
 
 
-    public static double VF = 0;
+    public static double VF = 1000;
     int targetID = 0;
     double tx = 0;
     double ty = 0;
@@ -156,12 +156,9 @@ public class bluePracticeTeleOp extends LinearOpMode {
         PIDFCoefficients flyhweelconts = new PIDFCoefficients(6.95,0,0,.7);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
         Thread KickerThread = new Thread(this::Operations);
-
-
-        waitForStart();
         pinpoint.resetPosAndIMU();
         pinpoint.recalibrateIMU();
-        pinpoint.setPosition(currentPose);
+        waitForStart();
         KickerThread.start();
 
         while (opModeIsActive()) { // Loop
@@ -170,7 +167,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
             y = pinpoint.getPosition().getY(DistanceUnit.INCH);
             heading = pinpoint.getHeading(AngleUnit.RADIANS);
             distanceToTarget = Math.sqrt(Math.pow(x - targetx, 2) + Math.pow(y - targety, 2));
-            Calculate(distanceToTarget);
+            //Calculate(distanceToTarget);
             xV = pinpoint.getVelX(DistanceUnit.INCH);
             yV = pinpoint.getVelY(DistanceUnit.INCH);
             netV = Math.sqrt(Math.pow(xV, 2) + Math.pow(yV, 2));
@@ -251,13 +248,18 @@ public class bluePracticeTeleOp extends LinearOpMode {
             else{
                 Pitch.setPosition(1);
             }
-
             //debug
+            if(gamepad2.dpadUpWasPressed()){
+                VF+=10;
+            }
+            if(gamepad2.dpadDownWasPressed()){
+                VF-=10;
+            }
             if(gamepad2.leftBumperWasPressed()){
-                offset+=5;
+                offset+=10;
             }
             if(gamepad2.rightBumperWasPressed()){
-                offset-=5;
+                offset-=10;
             }
             if(gamepad2.xWasPressed()){
                 pinpoint.setHeading(90,AngleUnit.DEGREES);
@@ -323,7 +325,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
             VF= 6.05505* dih +780.2844;
         }
         else{
-            VF = y=6.80133*dih+818.13451;
+            VF = 6.80133*dih+818.13451;
         }
     }
     private void intake(){
