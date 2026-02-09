@@ -1,3 +1,47 @@
+//class HumanBeing
+//
+//  init()
+
+//  legs
+//
+//
+//   walk() {
+//      service = new HumanBeingWalkSErvive(
+//
+//      )
+//              service.call() aka service.walk()walk
+//   }
+//
+//   talk() {
+//
+//   }
+//
+//
+//   /modules
+//        /humans
+//           entity.java
+//           /services
+//               walkSErvice
+//               talkservice
+//
+//
+//   flywheel = Flwheel.new
+//
+//
+//        garrett = HumanBeing.new
+//
+//
+//        garrett.talk()
+//
+//    garret.walk()
+
+
+
+
+
+
+
+
 package org.firstinspires.ftc.teamcode.mechanisms;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
