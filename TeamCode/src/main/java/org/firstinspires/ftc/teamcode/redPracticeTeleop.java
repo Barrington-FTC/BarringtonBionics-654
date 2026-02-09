@@ -201,6 +201,8 @@ public class redPracticeTeleop extends LinearOpMode {
             // --------------------------- WHEELS --------------------------- //
             // POV Mode uses left joystick to go forward & strafe, and right joystick to
             // rotate.
+            DriveTrainService.moveRobot(leftFrontDrive,rightFrontDrive,leftBackDrive,rightBackDrive);
+            /*
             double axial = Math.pow(-gamepad1.left_stick_y, 3); // Note: pushing stick forward gives negative value
             double lateral = Math.pow(gamepad1.left_stick_x, 3);
             double yaw = Math.pow(gamepad1.right_stick_x, 3);
@@ -231,6 +233,8 @@ public class redPracticeTeleop extends LinearOpMode {
             leftBackDrive.setPower(leftBackPower);
             rightBackDrive.setPower(rightBackPower);
 
+
+             */
             // Intake
             if (gamepad1.right_trigger > 0.01) {
                 Intake.setPower(1);

@@ -18,6 +18,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
+import org.firstinspires.ftc.teamcode.DriveTrainService;
 
 @Config
 @TeleOp(name = "blue far practice")
@@ -58,8 +59,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
 
     static double TargetX = 0;// find this
 
-
-    public static double VF = 1000;
+    public static double flyWheelVelocity = 1000;
     int targetID = 0;
     double tx = 0;
     double ty = 0;
@@ -90,6 +90,18 @@ public class bluePracticeTeleOp extends LinearOpMode {
     private double TURRET_TICKS_PER_RADIAN = 537.7/(Math.PI*2);
 
     private int turretTargetPosition = 0;
+    private double farDistanceScalr =  6.80133;
+
+    private double closeDistanceScalr = 6.05505;
+
+    private double farDistanceConstant = 780.2844;
+
+    private double closeDistanceConstant = 818.13451;
+
+    private double distanceToBackOfField = 112;
+
+    private DriveTrainService driveTrainService = new DriveTrainService();
+
 
     @Override
     public void runOpMode() {
@@ -193,35 +205,38 @@ public class bluePracticeTeleOp extends LinearOpMode {
             // --------------------------- WHEELS --------------------------- //
             // POV Mode uses left joystick to go forward & strafe, and right joystick to
             // rotate.
-            double axial = Math.pow(-gamepad1.left_stick_y, 3); // Note: pushing stick forward gives negative value
-            double lateral = Math.pow(gamepad1.left_stick_x, 3);
-            double yaw = Math.pow(gamepad1.right_stick_x, 3);
-            double leftFrontPower = axial + lateral + yaw;
-            double rightFrontPower = axial - lateral - yaw;
-            double leftBackPower = axial - lateral + yaw;
-            double rightBackPower = axial + lateral - yaw;
+            DriveTrainService.moveRobot(leftFrontDrive,rightFrontDrive,leftBackDrive,rightBackDrive);
 
-            double max = Math.max(Math.abs(leftFrontPower), Math.abs(rightFrontPower));
-            max = Math.max(max, Math.abs(leftBackPower));
-            max = Math.max(max, Math.abs(rightBackPower));
-            if (max > 1.0) {
-                leftFrontPower /= max;
-                rightFrontPower /= max;
-                leftBackPower /= max;
-                rightBackPower /= max;
-            }
-            if (gamepad1.right_bumper || gamepad1.left_bumper) {
-                leftFrontPower /= 2;
-                rightFrontPower /= 2;
-                leftBackPower /= 2;
-                rightBackPower /= 2;
-            }
 
-            // Send calculated power to wheels
-            leftFrontDrive.setPower(leftFrontPower);
-            rightFrontDrive.setPower(rightFrontPower);
-            leftBackDrive.setPower(leftBackPower);
-            rightBackDrive.setPower(rightBackPower);
+//            double axial = Math.pow(-gamepad1.left_stick_y, 3); // Note: pushing stick forward gives negative value
+//            double lateral = Math.pow(gamepad1.left_stick_x, 3);
+//            double yaw = Math.pow(gamepad1.right_stick_x, 3);
+//            double leftFrontPower = axial + lateral + yaw;
+//            double rightFrontPower = axial - lateral - yaw;
+//            double leftBackPower = axial - lateral + yaw;
+//            double rightBackPower = axial + lateral - yaw;
+//
+//            double max = Math.max(Math.abs(leftFrontPower), Math.abs(rightFrontPower));
+//            max = Math.max(max, Math.abs(leftBackPower));
+//            max = Math.max(max, Math.abs(rightBackPower));
+//            if (max > 1.0) {
+//                leftFrontPower /= max;
+//                rightFrontPower /= max;
+//                leftBackPower /= max;
+//                rightBackPower /= max;
+//            }
+//            if (gamepad1.right_bumper || gamepad1.left_bumper) {
+//                leftFrontPower /= 2;
+//                rightFrontPower /= 2;
+//                leftBackPower /= 2;
+//                rightBackPower /= 2;
+//            }
+//
+//            // Send calculated power to wheels
+//            leftFrontDrive.setPower(leftFrontPower);
+//            rightFrontDrive.setPower(rightFrontPower);
+//            leftBackDrive.setPower(leftBackPower);
+//            rightBackDrive.setPower(rightBackPower);
 
             // Intake
             if (gamepad1.right_trigger > 0.01) {
@@ -250,10 +265,10 @@ public class bluePracticeTeleOp extends LinearOpMode {
             }
             //debug
             if(gamepad2.dpadUpWasPressed()){
-                VF+=10;
+                flyWheelVelocity +=10;
             }
             if(gamepad2.dpadDownWasPressed()){
-                VF-=10;
+                flyWheelVelocity -=10;
             }
             if(gamepad2.leftBumperWasPressed()){
                 offset+=10;
@@ -276,7 +291,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
             }
             Indexer.setTargetPosition(TargetPosition);
             turret.setTargetPosition(turretTargetPosition);
-            Flywheel.setVelocity(VF);
+            Flywheel.setVelocity(flyWheelVelocity);
 
 
 
@@ -303,7 +318,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
             telemetry.addData("Ball one pos", ballOneIntake);
             telemetry.addData("Ball two pos ", ballTwoIntake);
             telemetry.addData("Ball three pos", ballThreeIntake);
-            telemetry.addData("Flywheel Target RPM", VF);
+            telemetry.addData("Flywheel Target RPM", flyWheelVelocity);
             telemetry.addData("distance", TargetX);
             telemetry.addData("ty", ty);
             telemetry.addData("tx", tx);
@@ -320,12 +335,13 @@ public class bluePracticeTeleOp extends LinearOpMode {
         }
 
     }
-    public void Calculate(double dih){
-        if(dih<112){
-            VF= 6.05505* dih +780.2844;
+
+    public void CalculateVF(double distance){
+        if(distance < distanceToBackOfField){
+            flyWheelVelocity = closeDistanceScalr * distance + closeDistanceConstant;
         }
         else{
-            VF = 6.80133*dih+818.13451;
+            flyWheelVelocity = farDistanceScalr * distance + farDistanceConstant;
         }
     }
     private void intake(){
@@ -376,6 +392,32 @@ public class bluePracticeTeleOp extends LinearOpMode {
         }
 
     }
+
+
+
+    ShootService
+
+        shoot(direction) {
+        if direct == regular
+                regularshoot()
+    }
+
+        private
+
+                regularShoot
+
+    revserseShoot
+
+
+
+
+
+    shotService.shoot(regular)
+
+
+
+
+    robot.shoot(direction)
     private void shoot(){
         shootCounter++;
         if(shootCounter == 4){
