@@ -179,7 +179,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
             y = pinpoint.getPosition().getY(DistanceUnit.INCH);
             heading = pinpoint.getHeading(AngleUnit.RADIANS);
             distanceToTarget = Math.sqrt(Math.pow(x - targetx, 2) + Math.pow(y - targety, 2));
-            //Calculate(distanceToTarget);
+            CalculateVF(distanceToTarget);
             xV = pinpoint.getVelX(DistanceUnit.INCH);
             yV = pinpoint.getVelY(DistanceUnit.INCH);
             netV = Math.sqrt(Math.pow(xV, 2) + Math.pow(yV, 2));
@@ -392,32 +392,6 @@ public class bluePracticeTeleOp extends LinearOpMode {
         }
 
     }
-
-
-
-    ShootService
-
-        shoot(direction) {
-        if direct == regular
-                regularshoot()
-    }
-
-        private
-
-                regularShoot
-
-    revserseShoot
-
-
-
-
-
-    shotService.shoot(regular)
-
-
-
-
-    robot.shoot(direction)
     private void shoot(){
         shootCounter++;
         if(shootCounter == 4){
