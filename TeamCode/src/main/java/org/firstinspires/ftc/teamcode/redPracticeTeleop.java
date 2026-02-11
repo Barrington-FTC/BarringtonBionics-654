@@ -157,11 +157,9 @@ public class redPracticeTeleop extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
         telemetry.update();
-        PIDFCoefficients flyhweelconts = new PIDFCoefficients(6.95,0,0,.7);
+        PIDFCoefficients flyhweelconts = new PIDFCoefficients(6.75,0,0,.5);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
         Thread KickerThread = new Thread(this::Operations);
-        pinpoint.resetPosAndIMU();
-        pinpoint.recalibrateIMU();
 
         waitForStart();
         pinpoint.setPosition(currentPose);
@@ -251,12 +249,6 @@ public class redPracticeTeleop extends LinearOpMode {
             if (gamepad1.dpadDownWasPressed()) {
                 reverseShoot();
             }
-            if(gamepad2.dpadRightWasPressed()){
-                VF+=10;
-            }
-            if(gamepad2.dpadLeftWasPressed()) {
-                VF -= 10;
-            }
 
             //debug
             if(gamepad2.dpadUpWasPressed()){
@@ -290,8 +282,6 @@ public class redPracticeTeleop extends LinearOpMode {
             else{
                 Pitch.setPosition(1);
             }
-
-
 
             Indexer.setTargetPosition(TargetPosition);
             turret.setTargetPosition(turretTargetPosition);
@@ -333,10 +323,10 @@ public class redPracticeTeleop extends LinearOpMode {
     }
     public void Calculate(double dih){
         if(dih<112){
-            VF=5.5* dih +791.2844;
+            VF=6.79594*dih+713.09404;
         }
         else{
-            VF = 6.10133*dih+818.13451;
+            VF = 2.28311*dih+1217.67123;
         }
     }
     private void intake(){

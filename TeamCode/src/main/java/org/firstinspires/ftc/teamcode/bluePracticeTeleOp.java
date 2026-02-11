@@ -153,7 +153,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.addData("Status", "Initialized");
         telemetry.update();
-        PIDFCoefficients flyhweelconts = new PIDFCoefficients(6.95,0,0,.7);
+        PIDFCoefficients flyhweelconts = new PIDFCoefficients(6.75,0,0,.5);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER,flyhweelconts);
         Thread KickerThread = new Thread(this::Operations);
         pinpoint.resetPosAndIMU();
@@ -167,7 +167,7 @@ public class bluePracticeTeleOp extends LinearOpMode {
             y = pinpoint.getPosition().getY(DistanceUnit.INCH);
             heading = pinpoint.getHeading(AngleUnit.RADIANS);
             distanceToTarget = Math.sqrt(Math.pow(x - targetx, 2) + Math.pow(y - targety, 2));
-            //Calculate(distanceToTarget);
+            Calculate(distanceToTarget);
             xV = pinpoint.getVelX(DistanceUnit.INCH);
             yV = pinpoint.getVelY(DistanceUnit.INCH);
             netV = Math.sqrt(Math.pow(xV, 2) + Math.pow(yV, 2));
@@ -274,6 +274,8 @@ public class bluePracticeTeleOp extends LinearOpMode {
                 Indexer.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
                 Indexer.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
+
+
             Indexer.setTargetPosition(TargetPosition);
             turret.setTargetPosition(turretTargetPosition);
             Flywheel.setVelocity(VF);
