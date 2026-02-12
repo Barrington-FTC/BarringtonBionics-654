@@ -118,6 +118,7 @@ public class RFarAuto extends OpMode {
         savedPosition.seth(follower.getPose().getHeading());
 
         // Log values to Panels and Driver Station
+        panelsTelemetry.debug("Flywheel Velocity", shooter.getFlyhwheelVelocity());
         panelsTelemetry.debug("Path State", pathState);
         panelsTelemetry.debug("X", follower.getPose().getX());
         panelsTelemetry.debug("Y", follower.getPose().getY());
@@ -131,7 +132,6 @@ public class RFarAuto extends OpMode {
     }
 
     public static class Paths {
-        public static PathChain Path0;
 
         public static PathChain Path1;
         public static PathChain Path2;
