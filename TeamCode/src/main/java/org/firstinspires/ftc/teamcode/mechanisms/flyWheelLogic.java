@@ -53,7 +53,7 @@ public class flyWheelLogic {
         leftKicker = hwMap.get(Servo.class, "leftKicker");
         Flywheel = hwMap.get(DcMotorEx.class, "Flywheel");
         Flywheel.setDirection(DcMotorSimple.Direction.FORWARD);
-        PIDFCoefficients flyhweelconts = new PIDFCoefficients(5.75, 0, 0, 2);
+        PIDFCoefficients flyhweelconts = new PIDFCoefficients(1000, 1, 0, 100);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER, flyhweelconts);
 
         leftKicker.setDirection(Servo.Direction.FORWARD);
@@ -71,7 +71,7 @@ public class flyWheelLogic {
         switch (FlywheelState) {
             case IDLE:
                 if (shotsRemaning > 0) {
-                    Flywheel.setVelocity(1430);
+                    Flywheel.setVelocity(1500);
                     if (shotsRemaning == 1) {
                         targetposition = shootOne;
                     }
@@ -96,7 +96,7 @@ public class flyWheelLogic {
                     targetposition = shootThree;
                 }
                 Indexer.setTargetPosition(targetposition);
-                if (!Indexer.isBusy() && Flywheel.getVelocity()<-1300) {
+                if (!Indexer.isBusy() && Flywheel.getVelocity()<-1450) {
                     stateTimer.reset();
                     FlywheelState = FlywheelState.SHOOT;
                 }
