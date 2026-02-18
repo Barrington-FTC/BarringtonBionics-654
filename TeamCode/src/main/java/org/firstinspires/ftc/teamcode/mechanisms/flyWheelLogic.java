@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.mechanisms;
 
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
+
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -42,10 +44,14 @@ public class flyWheelLogic {
 
     private double TARGET_FLYWHEEL_VELOCITY = 1300;
 
+    private double sec = 0.5;
+
     private int shootOne = 90;
     private int shootTwo = 270;
     private int shootThree = 450;
     private int targetposition = 0;
+
+    public boolean startspeed = false;
 
     public void init(HardwareMap hwMap, DcMotorEx index) {
         Turret = hwMap.get(DcMotorEx.class, "turret");
@@ -53,7 +59,7 @@ public class flyWheelLogic {
         leftKicker = hwMap.get(Servo.class, "leftKicker");
         Flywheel = hwMap.get(DcMotorEx.class, "Flywheel");
         Flywheel.setDirection(DcMotorSimple.Direction.FORWARD);
-        PIDFCoefficients flyhweelconts = new PIDFCoefficients(1000, 1, 0, 100);
+        PIDFCoefficients flyhweelconts = new PIDFCoefficients(20, 0, 0, 68);
         Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER, flyhweelconts);
 
         leftKicker.setDirection(Servo.Direction.FORWARD);
@@ -71,7 +77,7 @@ public class flyWheelLogic {
         switch (FlywheelState) {
             case IDLE:
                 if (shotsRemaning > 0) {
-                    Flywheel.setVelocity(1500);
+                    Flywheel.setVelocity(1350);
                     if (shotsRemaning == 1) {
                         targetposition = shootOne;
                     }
@@ -86,6 +92,14 @@ public class flyWheelLogic {
                 }
                 break;
             case SPIN_UP:
+                while (Flywheel.getVelocity()>-1300) {
+                    Flywheel.setPower(1);
+                    Flywheel.getVelocity();
+                 }
+                Flywheel.setVelocity(1350);
+
+
+
                 if (shotsRemaning == 1) {
                     targetposition = shootOne;
                 }

@@ -84,8 +84,8 @@ public class BFarAuto extends OpMode {
 
         // flywheel
         Flywheel.setDirection(DcMotorSimple.Direction.FORWARD);
-        PIDFCoefficients flyhweelconts = new PIDFCoefficients(6.95,0,0,.7);
-        Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER, flyhweelconts);
+        //PIDFCoefficients flyhweelconts = new PIDFCoefficients(6.95,0,0,.7);
+       // Flywheel.setPIDFCoefficients(DcMotorEx.RunMode.RUN_USING_ENCODER, flyhweelconts);
         // servos
         pitch.setPosition(0);
         leftKicker.setPosition(.01);
